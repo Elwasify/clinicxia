@@ -1,0 +1,795 @@
+<div class="flex-col gap-6 w-full hidden" id="view-record"><!-- 1. DAILY RECORD HEADER & CONTROLS -->
+<div class="rounded-xl p-6 relative overflow-hidden bg-white shadow-sm border border-[#E2E8F0] flex flex-col gap-5">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-[#0B2545] text-white flex items-center justify-center shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[26px]">receipt_long</span>
+</div>
+<div class="flex flex-col text-right">
+<div class="flex items-center gap-3">
+<h2 class="text-[20px] font-bold text-[#0B2545] leading-tight">سجل اليوم</h2>
+<span class="bg-teal-50 text-[#0F7C82] border border-teal-200 text-[12px] font-bold px-3 py-0.5 rounded-full">سجل أرشيفي دائم</span>
+</div>
+<p class="text-[13px] text-[#64748B] mt-1">عرض حالات اليوم والزيارات والتحصيلات المسجلة</p>
+</div>
+</div>
+<div class="flex flex-wrap items-center gap-3"><div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg bg-slate-50 border border-[#E2E8F0] text-[13px] text-[#1E293B]"><div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px] text-[#0F7C82]">today</span><span class="font-bold text-[#0B2545]">تفاصيل اليوم:</span></div><span class="font-semibold text-[#0F7C82]">السبت 26 سبتمبر 2026</span><span class="text-[#CBD5E1] text-[11px]">•</span><span class="text-[#64748B] text-[12px]">السجل التشغيلي والمالي لليوم</span></div><button class="h-[40px] px-5 rounded-lg bg-[#0F7C82] hover:bg-[#14B8A6] active:bg-[#00696e] text-white font-bold text-[13.5px] flex items-center gap-2 transition-all shadow-sm cursor-pointer" id="btn-send-admin-report" onclick="sendReportToAdmin()" type="button"><span class="material-symbols-outlined text-[19px]">send</span><span class="">إرسال التقرير للإداري</span></button></div>
+</div>
+</div>
+<!-- 2. HISTORICAL SUMMARY KPI METRICS (5 CLEAN CARDS) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+<!-- Card 1: Total Patients -->
+<div class="bg-white rounded-xl p-5 border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="text-[13px] font-semibold text-[#64748B]">إجمالي حالات اليوم</span>
+<div class="w-9 h-9 rounded-lg bg-slate-50 border border-[#E2E8F0] text-[#0B2545] flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">groups</span>
+</div>
+</div>
+<div class="mt-3 flex items-baseline gap-2">
+<span class="text-[28px] font-bold text-[#0B2545] font-mono leading-none">18</span>
+<span class="text-[12px] font-medium text-[#64748B]">حالة مسجلة</span>
+</div>
+<div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11.5px] text-[#64748B]">
+<span class="">كافة الحالات المسجلة لليوم</span>
+<span class="font-bold font-mono text-[#0B2545]">100%</span>
+</div>
+</div>
+<!-- Card 2: Completed -->
+<div class="bg-white rounded-xl p-5 border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="text-[13px] font-semibold text-[#64748B]">الكشوفات المكتملة</span>
+<div class="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">task_alt</span>
+</div>
+</div>
+<div class="mt-3 flex items-baseline gap-2">
+<span class="text-[28px] font-bold text-emerald-700 font-mono leading-none">06</span>
+<span class="text-[12px] font-medium text-[#64748B]">حالات غادروا</span>
+</div>
+<div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11.5px] text-[#64748B]">
+<span class="">تم إنهاء الكشف واستلام العلاج</span>
+<span class="font-bold font-mono text-emerald-700">33.3%</span>
+</div>
+</div>
+<!-- Card 3: Re-consultations -->
+<div class="bg-white rounded-xl p-5 border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="text-[13px] font-semibold text-[#64748B]">إعادات الكشف (استشارة)</span>
+<div class="w-9 h-9 rounded-lg bg-cyan-50 border border-cyan-200 text-[#0F7C82] flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">sync</span>
+</div>
+</div>
+<div class="mt-3 flex items-baseline gap-2">
+<span class="text-[28px] font-bold text-[#0B2545] font-mono leading-none">04</span>
+<span class="text-[12px] font-medium text-[#64748B]">حالات استشارة</span>
+</div>
+<div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11.5px] text-[#64748B]">
+<span class="">خلال مهلة 14 يوماً (150 ج.م)</span>
+<span class="font-bold font-mono text-[#0F7C82]">600 ج.م</span>
+</div>
+</div>
+<!-- Card 4: Free Follow-ups -->
+<div class="bg-white rounded-xl p-5 border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="text-[13px] font-semibold text-[#64748B]">المتابعات وفحص النتائج</span>
+<div class="w-9 h-9 rounded-lg bg-teal-50 border border-teal-200 text-[#0F7C82] flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">clinical_notes</span>
+</div>
+</div>
+<div class="mt-3 flex items-baseline gap-2">
+<span class="text-[28px] font-bold text-[#0F7C82] font-mono leading-none">02</span>
+<span class="text-[12px] font-medium text-[#64748B]">حالات معفاة</span>
+</div>
+<div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11.5px] text-[#64748B]">
+<span class="">فحص تحاليل وأشعة (0 ج.م)</span>
+<span class="font-semibold text-emerald-700">معفى بقرار الطبيب</span>
+</div>
+</div>
+<!-- Card 5: Total Revenue / Cash -->
+<div class="bg-white rounded-xl p-5 border-2 border-[#0F7C82]/30 shadow-sm flex flex-col justify-between bg-gradient-to-br from-white to-teal-50/30">
+<div class="flex items-center justify-between">
+<span class="text-[13px] font-bold text-[#0B2545]">إجمالي التحصيل النقدي</span>
+<div class="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+</div>
+</div>
+<div class="mt-3 flex items-baseline gap-1.5">
+<span class="text-[28px] font-bold text-emerald-700 font-mono leading-none">4,850</span>
+<span class="text-[13px] font-bold text-[#0B2545]">ج.م (كاش)</span>
+</div>
+<div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11.5px] text-[#64748B]">
+<span class="">سداد نقدي بخزينة العيادة</span>
+<span class="font-bold text-emerald-700 flex items-center gap-0.5"><span class="material-symbols-outlined text-[14px]">verified</span>مطابق</span>
+</div>
+</div>
+</div>
+<!-- 3. SEARCH & FILTER CONTROLS BAR -->
+<div class="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-sm flex flex-col gap-4">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#E2E8F0]">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 text-[#0F7C82] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]">history_edu</span>
+</div>
+<div class="flex flex-col text-right">
+<h3 class="text-[16px] font-bold text-[#0B2545]">بيانات التدقيق المالي والإداري لزيارات اليوم</h3>
+<p class="text-[12px] text-[#64748B] mt-0.5">عرض حالات اليوم والزيارات والتحصيلات المسجلة</p>
+</div>
+</div>
+<div class="flex flex-wrap items-center gap-3">
+<div class="relative w-72">
+<input class="w-full h-10 pr-9 pl-3 rounded-lg border border-[#CBD5E1] bg-slate-50 focus:bg-white text-[13px] text-[#1E293B] focus:outline-none focus:border-[#0F7C82] placeholder-[#94A3B8]" id="daily-audit-search" oninput="filterDailyAuditTable()" placeholder="بحث برقم الإيصال أو كود المريض أو الاسم..." type="text">
+<span class="material-symbols-outlined absolute top-2.5 right-2.5 text-[19px] text-[#64748B]">search</span>
+</div>
+<select class="h-10 px-3 rounded-lg border border-[#CBD5E1] bg-slate-50 text-[13px] text-[#1E293B] font-medium focus:outline-none focus:border-[#0F7C82] cursor-pointer" id="daily-audit-filter-type" onchange="filterDailyAuditTable()">
+<option value="all">جميع أنواع الزيارات (18)</option>
+<option value="كشف جديد">كشف جديد</option>
+<option value="كشف اعتيادي">كشف اعتيادي</option>
+<option value="إعادة كشف">إعادة كشف</option>
+<option value="متابعة">متابعة</option>
+<option value="استئناف">استئناف</option>
+</select>
+</div>
+</div>
+<!-- 4. PURE AUDIT / HISTORICAL RECORD DATA TABLE -->
+<div class="overflow-x-auto w-full">
+<table class="w-full text-right border-collapse table-fixed" dir="rtl" id="daily-audit-log-table">
+<colgroup><col style="width: 9%;"><col style="width: 11%;"><col style="width: 26%;"><col style="width: 11%;"><col style="width: 10%;"><col style="width: 14%;"><col style="width: 10%;"><col style="width: 9%;"></colgroup>
+<thead class="h-12 bg-[#F1F5F9] border-b-2 border-[#CBD5E1]">
+<tr class="text-[#0B2545] font-bold text-[13.5px]">
+<th class="py-3.5 px-2 font-bold text-center align-middle">رقم الدور / الإيصال</th>
+<th class="py-3.5 px-2 font-bold text-center align-middle">كود المريض</th>
+<th class="py-3.5 px-3 font-bold text-right align-middle">اسم المريض والسن</th>
+<th class="py-3.5 px-2 font-bold text-center align-middle">نوع الزيارة</th>
+<th class="py-3.5 px-2 font-bold text-center align-middle">وقت الحضور</th>
+<th class="py-3.5 px-2 font-bold text-center align-middle">الحالة الإدارية</th>
+<th class="py-3.5 px-2 font-bold text-center align-middle">التحصيل المالي</th>
+<th class="py-3.5 px-2 font-bold text-center align-middle">طريقة السداد</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#E2E8F0]" id="daily-audit-table-body">
+<!-- Patient 01 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14 bg-slate-50/40" data-audit-status="completed" data-audit-type="كشف جديد">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#0B2545]">01</span>
+<span class="font-mono text-[11px] text-[#0F7C82] font-semibold">#REC-101</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0041</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">أحمد محمد السيد</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">42 سنة — فحص دوري</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-surface-container-high text-[#1E293B] text-[12px] font-semibold whitespace-nowrap">كشف جديد</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">09:10 ص</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">check_circle</span>تم إنهاء الكشف
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0B2545] whitespace-nowrap">
+            500 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700 whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">payments</span>كاش بالخزينة
+            </span>
+</td>
+</tr>
+<!-- Patient 02 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14 bg-slate-50/40" data-audit-status="completed" data-audit-type="إعادة كشف">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#0B2545]">02</span>
+<span class="font-mono text-[11px] text-[#0F7C82] font-semibold">#REC-102</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0042</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">فاطمة علي حسن</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">34 سنة — حساسية بنسلين</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-secondary-container text-secondary text-[12px] font-semibold whitespace-nowrap">إعادة كشف</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">09:18 ص</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">check_circle</span>تم إنهاء الكشف
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0B2545] whitespace-nowrap">
+            150 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700 whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">payments</span>كاش بالخزينة
+            </span>
+</td>
+</tr>
+<!-- Patient 03 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14 bg-slate-50/40" data-audit-status="completed" data-audit-type="متابعة">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#0B2545]">03</span>
+<span class="font-mono text-[11px] text-[#64748B] font-semibold">#REC-103</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0043</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">محمود عبد الرؤوف</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">58 سنة — متابعة كبد</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-teal-50 text-[#006e73] text-[12px] font-semibold whitespace-nowrap">متابعة</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">09:25 ص</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">check_circle</span>تم إنهاء الكشف
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0F7C82] whitespace-nowrap">
+            0 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[#0F7C82] whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">verified</span>معفى (متابعة)
+            </span>
+</td>
+</tr>
+<!-- Patient 04 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14 bg-slate-50/40" data-audit-status="completed" data-audit-type="إعادة كشف">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#0B2545]">04</span>
+<span class="font-mono text-[11px] text-[#0F7C82] font-semibold">#REC-104</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0044</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">سارة حسن مصطفى</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">29 سنة — متابعة علاجية</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-secondary-container text-secondary text-[12px] font-semibold whitespace-nowrap">إعادة كشف</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">09:28 ص</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">check_circle</span>تم إنهاء الكشف
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0B2545] whitespace-nowrap">
+            150 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700 whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">payments</span>كاش بالخزينة
+            </span>
+</td>
+</tr>
+<!-- Patient 05 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14 bg-blue-50/20" data-audit-status="suspended" data-audit-type="كشف اعتيادي">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#0F7C82]">05</span>
+<span class="font-mono text-[11px] text-[#0F7C82] font-semibold">#REC-105</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0048</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">أيمن كمال الشافعي</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">47 سنة — فحص دم ووظائف كبد</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-surface-container-high text-[#1E293B] text-[12px] font-semibold whitespace-nowrap">كشف اعتيادي</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">10:40 ص</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-blue-50 text-[#0F7C82] border border-blue-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">biotech</span>بانتظار الفحوصات
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0B2545] whitespace-nowrap">
+            500 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700 whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">payments</span>كاش بالخزينة
+            </span>
+</td>
+</tr>
+<!-- Patient 06 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14 bg-slate-50/20" data-audit-status="absent" data-audit-type="إعادة كشف">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#64748B]">06</span>
+<span class="font-mono text-[11px] text-[#0F7C82] font-semibold">#REC-106</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0045</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">ياسر طارق رضوان</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">50 سنة — استشارة دورية</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-secondary-container text-secondary text-[12px] font-semibold whitespace-nowrap">إعادة كشف</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">09:30 ص</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">person_off</span>مسدد ولم يحضر
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0B2545] whitespace-nowrap">
+            150 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700 whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">payments</span>كاش بالخزينة
+            </span>
+</td>
+</tr>
+<!-- Patient 07 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14 bg-red-50/20" data-audit-status="inside" data-audit-type="كشف جديد">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#DC2626]">07</span>
+<span class="font-mono text-[11px] text-[#DC2626] font-semibold">#REC-107</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0049</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">منى إبراهيم خليل</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">41 سنة — فحص باطني وسونار</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-surface-container-high text-[#1E293B] text-[12px] font-semibold whitespace-nowrap">كشف جديد</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">11:42 ص</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-red-50 text-[#DC2626] border border-red-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">meeting_room</span>داخل الكشف
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0B2545] whitespace-nowrap">
+            500 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700 whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">payments</span>كاش بالخزينة
+            </span>
+</td>
+</tr>
+<!-- Patient 08 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14" data-audit-status="waiting" data-audit-type="كشف اعتيادي">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#0F7C82]">08</span>
+<span class="font-mono text-[11px] text-[#0F7C82] font-semibold">#REC-108</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0050</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">حازم عبد الله توفيق</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">52 سنة — كشف دوري</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-surface-container-high text-[#1E293B] text-[12px] font-semibold whitespace-nowrap">كشف اعتيادي</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">11:45 ص</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">schedule</span>في الانتظار
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0B2545] whitespace-nowrap">
+            500 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700 whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">payments</span>كاش بالخزينة
+            </span>
+</td>
+</tr>
+<!-- Patient 09 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14" data-audit-status="waiting" data-audit-type="إعادة كشف">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#0F7C82]">09</span>
+<span class="font-mono text-[11px] text-[#0F7C82] font-semibold">#REC-109</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0051</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">نيرة عصام المهدي</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">29 سنة — متابعة علاجية</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-secondary-container text-secondary text-[12px] font-semibold whitespace-nowrap">إعادة كشف</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">11:48 ص</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">schedule</span>في الانتظار
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0B2545] whitespace-nowrap">
+            150 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700 whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">payments</span>كاش بالخزينة
+            </span>
+</td>
+</tr>
+<!-- Patient 10 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14" data-audit-status="waiting" data-audit-type="كشف جديد">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#0F7C82]">10</span>
+<span class="font-mono text-[11px] text-[#0F7C82] font-semibold">#REC-110</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0052</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">تامر صبحي عبد القادر</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">45 سنة — فحص كبد وجهاز هضمي</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-surface-container-high text-[#1E293B] text-[12px] font-semibold whitespace-nowrap">كشف جديد</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">11:50 ص</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">schedule</span>في الانتظار
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0B2545] whitespace-nowrap">
+            500 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700 whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">payments</span>كاش بالخزينة
+            </span>
+</td>
+</tr>
+<!-- Patient 11 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14" data-audit-status="waiting" data-audit-type="متابعة">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#0F7C82]">11</span>
+<span class="font-mono text-[11px] text-[#64748B] font-semibold">#REC-111</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0053</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">فريدة عادل زهران</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">38 سنة — استشارة تقرير أشعة</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-teal-50 text-[#006e73] text-[12px] font-semibold whitespace-nowrap">متابعة</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">11:52 ص</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-teal-50 text-[#0F7C82] border border-teal-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">schedule</span>في الانتظار (متابعة)
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0F7C82] whitespace-nowrap">
+            0 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[#0F7C82] whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">verified</span>معفى (تقرير أشعة)
+            </span>
+</td>
+</tr>
+<!-- Patient 12 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14" data-audit-status="waiting" data-audit-type="كشف اعتيادي">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#0F7C82]">12</span>
+<span class="font-mono text-[11px] text-[#0F7C82] font-semibold">#REC-112</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0054</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">شريف جلال منصور</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">61 سنة — مراجعة علاج ضغط</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-surface-container-high text-[#1E293B] text-[12px] font-semibold whitespace-nowrap">كشف اعتيادي</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">11:55 ص</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">schedule</span>في الانتظار
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0B2545] whitespace-nowrap">
+            500 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700 whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">payments</span>كاش بالخزينة
+            </span>
+</td>
+</tr>
+<!-- Patient 13 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14" data-audit-status="waiting" data-audit-type="إعادة كشف">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#0F7C82]">13</span>
+<span class="font-mono text-[11px] text-[#0F7C82] font-semibold">#REC-113</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0055</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">هبة الله سامي عبد ربه</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">33 سنة — متابعة أسبوعية</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-secondary-container text-secondary text-[12px] font-semibold whitespace-nowrap">إعادة كشف</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">11:58 ص</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">schedule</span>في الانتظار
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0B2545] whitespace-nowrap">
+            150 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700 whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">payments</span>كاش بالخزينة
+            </span>
+</td>
+</tr>
+<!-- Patient 14 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14" data-audit-status="waiting" data-audit-type="كشف جديد">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#0F7C82]">14</span>
+<span class="font-mono text-[11px] text-[#0F7C82] font-semibold">#REC-114</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0056</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">عمرو وجدي رسلان</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">49 سنة — كشف جديد باطنة وسونار</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-surface-container-high text-[#1E293B] text-[12px] font-semibold whitespace-nowrap">كشف جديد</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">12:02 م</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">schedule</span>في الانتظار
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0B2545] whitespace-nowrap">
+            500 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700 whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">payments</span>كاش بالخزينة
+            </span>
+</td>
+</tr>
+<!-- Patient 15 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14" data-audit-status="waiting" data-audit-type="متابعة">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#0F7C82]">15</span>
+<span class="font-mono text-[11px] text-[#64748B] font-semibold">#REC-115</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0057</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">ريهام مدحت القاضي</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">44 سنة — استشارة تحليل سكر</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-surface-container-high text-[#1E293B] text-[12px] font-semibold whitespace-nowrap">متابعة</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">12:05 م</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">schedule</span>في الانتظار
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0F7C82] whitespace-nowrap">
+            0 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[#0F7C82] whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">verified</span>معفى (سكر تراكمي)
+            </span>
+</td>
+</tr>
+<!-- Patient 16 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14" data-audit-status="waiting" data-audit-type="كشف جديد">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#0F7C82]">16</span>
+<span class="font-mono text-[11px] text-[#0F7C82] font-semibold">#REC-116</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0058</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">محمود سعيد عبد الرحمن</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">38 سنة — كشف جديد باطنة</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-surface-container-high text-[#1E293B] text-[12px] font-semibold whitespace-nowrap">كشف جديد</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">12:10 م</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">schedule</span>في الانتظار
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0B2545] whitespace-nowrap">
+            500 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700 whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">payments</span>كاش بالخزينة
+            </span>
+</td>
+</tr>
+<!-- Patient 17 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14" data-audit-status="waiting" data-audit-type="إعادة كشف">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#0F7C82]">17</span>
+<span class="font-mono text-[11px] text-[#0F7C82] font-semibold">#REC-117</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0059</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">نجلاء حسني إبراهيم</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">46 سنة — فحص دوري</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-secondary-container text-secondary text-[12px] font-semibold whitespace-nowrap">إعادة كشف</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">12:15 م</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">schedule</span>في الانتظار
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0B2545] whitespace-nowrap">
+            150 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700 whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">payments</span>كاش بالخزينة
+            </span>
+</td>
+</tr>
+<!-- Patient 18 -->
+<tr class="hover:bg-[#F8FAFC] transition-colors h-14" data-audit-status="waiting" data-audit-type="كشف جديد">
+<td class="py-3 px-2 text-center align-middle">
+<div class="flex flex-col items-center justify-center leading-tight">
+<span class="font-mono font-bold text-[14px] text-[#0F7C82]">18</span>
+<span class="font-mono text-[11px] text-[#0F7C82] font-semibold">#REC-118</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-block font-mono font-bold text-[12px] text-[#0B2545] bg-slate-100 px-2 py-0.5 rounded ltr-text">26-0060</span>
+</td>
+<td class="py-3 px-3 align-middle text-right">
+<div class="flex flex-col justify-center">
+<span class="font-bold text-[14px] text-[#1E293B] truncate">كريم عبد الحميد غانم</span>
+<span class="text-[11.5px] text-[#64748B] mt-0.5">55 سنة — فحص جهاز هضمي</span>
+</div>
+</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex px-2.5 py-0.5 rounded bg-surface-container-high text-[#1E293B] text-[12px] font-semibold whitespace-nowrap">كشف جديد</span>
+</td>
+<td class="py-3 px-2 font-mono text-[12.5px] text-[#64748B] text-center align-middle whitespace-nowrap">12:20 م</td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+<span class="material-symbols-outlined text-[15px]">schedule</span>في الانتظار
+            </span>
+</td>
+<td class="py-3 px-2 text-center align-middle font-mono font-bold text-[13.5px] text-[#0B2545] whitespace-nowrap">
+            500 ج.م
+          </td>
+<td class="py-3 px-2 text-center align-middle">
+<span class="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700 whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">payments</span>كاش بالخزينة
+            </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- 5. AUDIT FOOTER & AUDIT SUMMARY SIGN-OFF -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#E2E8F0] text-[12.5px] text-[#64748B]">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-[#16A34A]"></span>
+<span class="">تم إغلاق وتوثيق جميع الإيصالات وفق دورة التحصيل النقدي بالخزينة (<strong>4,850 ج.م كاش</strong>).</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="">المسؤول: <strong>إسلام أحمد نور</strong> (موظف استقبال)</span>
+<span class="">الاعتماد الطبي: <strong>أ.د. عفيفي فهمي</strong></span>
+</div>
+</div>
+</div></div>

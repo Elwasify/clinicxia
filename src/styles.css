@@ -1,0 +1,34 @@
+html,
+body,
+#root,
+#clinicxia-app {
+  min-height: 100%;
+}
+
+#root,
+#clinicxia-app {
+  display: contents;
+}
+
+body {
+  min-width: 320px;
+}
+
+#clinicxia-app {
+  width: 100%;
+}
+
+#clinicxia-app .legacy-markup {
+  display: contents;
+}
+
+#clinicxia-app :is(button, input, select, textarea, a):focus-visible {
+  outline: 3px solid #0f7c82;
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  #page-outlet {
+    padding-inline: 12px !important;
+  }
+}
