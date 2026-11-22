@@ -16,6 +16,7 @@ parsedDocument.querySelectorAll('script').forEach((script) => script.remove());
 
 function LegacyApp() {
   useLayoutEffect(() => {
+    document.getElementById('root')?.classList.add('clinic-root');
     document.documentElement.lang = parsedDocument.documentElement.lang || 'ar';
     document.documentElement.dir = parsedDocument.documentElement.dir || 'rtl';
     document.title = parsedDocument.title || document.title;
@@ -26,6 +27,14 @@ function LegacyApp() {
 
     Array.from(parsedDocument.head.children).forEach((element) => {
       if (element.matches('link, style')) {
+        const duplicateLink = element.matches('link')
+          && Array.from(document.head.querySelectorAll('link'))
+            .some((existing) => existing.href === element.href);
+
+        if (duplicateLink) {
+          return;
+        }
+
         document.head.appendChild(element.cloneNode(true));
       }
     });

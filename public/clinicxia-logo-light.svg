@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 80">
+  <rect x="4" y="4" width="72" height="72" rx="20" fill="#FFFFFF" fill-opacity=".12" stroke="#FFFFFF" stroke-opacity=".26"/>
+  <circle cx="40" cy="40" r="25" fill="none" stroke="#42BDB2" stroke-width="2"/>
+  <path d="M35 21h10v14h14v10H45v14H35V45H21V35h14V21Z" fill="#FFFFFF"/>
+  <text x="92" y="52" fill="#FFFFFF" font-family="Cairo, Arial, sans-serif" font-size="35" font-weight="800" letter-spacing=".4">CLINICXIA</text>
+</svg>
