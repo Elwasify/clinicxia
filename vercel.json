@@ -3,11 +3,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/login",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/signup",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
