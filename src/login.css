@@ -50,36 +50,6 @@ body.auth-layout {
   text-decoration: none;
 }
 
-.clinic-logo {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-}
-
-.clinic-logo img {
-  display: block;
-  width: 132px;
-  height: 30px;
-  object-fit: contain;
-}
-
-.auth-wordmark-logo img {
-  width: 116px;
-}
-
-.auth-brand-logo {
-  padding: 8px 11px;
-  border: 1px solid rgb(255 255 255 / 28%);
-  border-radius: 11px;
-  background: #fff;
-}
-
-.auth-brand-logo img {
-  width: 128px;
-  height: 28px;
-}
-
 .auth-wordmark strong,
 .auth-wordmark small,
 .auth-brand-top strong,
@@ -416,6 +386,12 @@ body.auth-layout {
   position: relative;
   z-index: 1;
   color: #fff;
+}
+
+.auth-brand-top > .auth-brand-name {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0;
 }
 
 .auth-brand-top strong {

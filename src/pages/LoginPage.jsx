@@ -1,5 +1,4 @@
 import { useLayoutEffect, useState } from 'react';
-import ClinicLogo from '../components/ClinicLogo.jsx';
 
 const pageCopy = {
   login: {
@@ -155,7 +154,6 @@ function LoginPage({ initialMode = 'login' }) {
       <section className="auth-form-side" aria-labelledby="auth-title">
         <div className="auth-form-content">
           <a className="auth-wordmark" href="/" aria-label="كلينيكسيا - الرئيسية">
-            <ClinicLogo className="auth-wordmark-logo" />
             <span>
               <strong>كلينيكسيا</strong>
               <small>نظام إدارة العيادات</small>
@@ -287,7 +285,7 @@ function LoginPage({ initialMode = 'login' }) {
 
       <aside className="auth-brand-side">
         <div className="auth-brand-top">
-          <ClinicLogo className="auth-brand-logo" variant="light" />
+          <strong className="auth-brand-name">كلينيكسيا</strong>
           <span>
             <strong>إدارة عيادتك بذكاء</strong>
             <small>نظام متكامل لإدارة العيادات</small>
