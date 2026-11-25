@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme {
+  --color-clinic-navy: #0b2545;
+  --color-clinic-navy-dark: #07172c;
+  --color-clinic-teal: #0f7c82;
+  --color-clinic-teal-light: #13979f;
+  --color-clinic-teal-soft: #e6f4f5;
+  --color-clinic-bg: #f7f9fc;
+  --color-clinic-text: #1e293b;
+  --color-clinic-muted: #64748b;
+  --color-clinic-border: #e2e8f0;
+
+  --font-cairo: "Cairo", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+@layer base {
+  :root {
+    --clinic-navy: #0b2545;
+    --clinic-teal: #0f7c82;
+    --clinic-bg: #f7f9fc;
+    --clinic-text: #1e293b;
+  }
+
+  body {
+    background-color: var(--clinic-bg);
+    color: var(--clinic-text);
+    font-family: "Cairo", system-ui, sans-serif;
+    direction: rtl;
+    text-align: right;
+  }
+}
+
+.ltr-text {
+  direction: ltr;
+  text-align: left;
+  display: inline-block;
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Print styles */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}

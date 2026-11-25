@@ -1,0 +1,573 @@
+openapi: 3.1.0
+info:
+  title: CLINICXIA Medical Management API
+  version: 1.0.0
+  description: API contract for Clinicxia clinic management frontend and backend.
+servers:
+  - url: /api
+    description: Current deployment or mock server
+
+paths:
+  /auth/login:
+    post:
+      summary: User authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+
+  /auth/me:
+    get:
+      summary: Get currently authenticated user
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /auth/change-password:
+    post:
+      summary: Change password for authenticated user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [oldPassword, newPassword]
+              properties:
+                oldPassword:
+                  type: string
+                newPassword:
+                  type: string
+      responses:
+        '200':
+          description: Password updated successfully
+
+  /auth/logout:
+    post:
+      summary: Logout user
+      responses:
+        '200':
+          description: Logged out successfully
+
+  /doctors:
+    get:
+      summary: List all active clinic doctors
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Doctor'
+
+  /patients:
+    get:
+      summary: List or paginate patients
+      parameters:
+        - name: query
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Patient'
+                  total:
+                    type: integer
+    post:
+      summary: Create new patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePatientInput'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+
+  /patients/{id}:
+    get:
+      summary: Get patient details by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientDetails'
+    put:
+      summary: Update patient details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePatientInput'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+
+  /visits:
+    get:
+      summary: List visits for today / queue
+      parameters:
+        - name: doctorId
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Visit'
+    post:
+      summary: Register a new patient visit into today's queue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patientId, doctorId, visitType]
+              properties:
+                patientId:
+                  type: string
+                doctorId:
+                  type: string
+                visitType:
+                  type: string
+                  enum: [new, follow_up, consultation]
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Visit'
+
+  /visits/{id}:
+    get:
+      summary: Get full visit details including examination form
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Visit'
+
+  /visits/{id}/status:
+    patch:
+      summary: Update visit queue status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [waiting, in_consultation, completed, cancelled]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Visit'
+
+  /visits/{id}/draft:
+    put:
+      summary: Save examination draft
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExaminationData'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Visit'
+
+  /visits/{id}/approve:
+    post:
+      summary: Approve and lock examination record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExaminationData'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Visit'
+
+  /visits/{id}/addendum:
+    post:
+      summary: Add medical addendum to approved visit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [note]
+              properties:
+                note:
+                  type: string
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Addendum'
+
+  /voice/transcribe:
+    post:
+      summary: Upload audio chunk for medical transcription
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [audio, language]
+              properties:
+                audio:
+                  type: string
+                  format: binary
+                language:
+                  type: string
+                  enum: [ar-EG, en-US]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text:
+                    type: string
+                  confidence:
+                    type: number
+
+components:
+  schemas:
+    User:
+      type: object
+      required: [id, username, fullName, role]
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        fullName:
+          type: string
+        role:
+          type: string
+          enum: [DOCTOR, RECEPTIONIST]
+        doctorId:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+
+    Doctor:
+      type: object
+      required: [id, name, title, specialty]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        title:
+          type: string
+        specialty:
+          type: string
+        availableToday:
+          type: boolean
+
+    Patient:
+      type: object
+      required: [id, code, name, phone, gender, dateOfBirth]
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        gender:
+          type: string
+          enum: [male, female]
+        dateOfBirth:
+          type: string
+        age:
+          type: integer
+        drugAllergies:
+          type: array
+          items:
+            type: string
+        chronicDiseases:
+          type: array
+          items:
+            type: string
+        lastVisitDate:
+          type: string
+        visitCount:
+          type: integer
+
+    CreatePatientInput:
+      type: object
+      required: [name, phone, gender, dateOfBirth]
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        gender:
+          type: string
+          enum: [male, female]
+        dateOfBirth:
+          type: string
+        drugAllergies:
+          type: array
+          items:
+            type: string
+        chronicDiseases:
+          type: array
+          items:
+            type: string
+
+    PatientDetails:
+      allOf:
+        - $ref: '#/components/schemas/Patient'
+        - type: object
+          properties:
+            visits:
+              type: array
+              items:
+                $ref: '#/components/schemas/VisitSummary'
+
+    VisitSummary:
+      type: object
+      required: [id, date, doctorName, diagnosis, status]
+      properties:
+        id:
+          type: string
+        date:
+          type: string
+        doctorName:
+          type: string
+        diagnosis:
+          type: string
+        status:
+          type: string
+
+    Visit:
+      type: object
+      required: [id, queueNumber, patientId, patientName, patientCode, doctorId, doctorName, visitType, status, arrivalTime]
+      properties:
+        id:
+          type: string
+        queueNumber:
+          type: string
+        patientId:
+          type: string
+        patientName:
+          type: string
+        patientPhone:
+          type: string
+        patientCode:
+          type: string
+        patientGender:
+          type: string
+        patientAge:
+          type: integer
+        drugAllergies:
+          type: array
+          items:
+            type: string
+        chronicDiseases:
+          type: array
+          items:
+            type: string
+        doctorId:
+          type: string
+        doctorName:
+          type: string
+        visitType:
+          type: string
+          enum: [new, follow_up, consultation]
+        status:
+          type: string
+          enum: [waiting, in_consultation, completed, cancelled]
+        examinationStatus:
+          type: string
+          enum: [pending, draft, approved]
+        arrivalTime:
+          type: string
+        examination:
+          $ref: '#/components/schemas/ExaminationData'
+        addenda:
+          type: array
+          items:
+            $ref: '#/components/schemas/Addendum'
+
+    PrescriptionItem:
+      type: object
+      required: [id, drugName, dose, frequency, duration, instructions]
+      properties:
+        id:
+          type: string
+        drugName:
+          type: string
+        dose:
+          type: string
+        frequency:
+          type: string
+        duration:
+          type: string
+        instructions:
+          type: string
+
+    ExaminationData:
+      type: object
+      properties:
+        chiefComplaint:
+          type: string
+        clinicalExamination:
+          type: string
+        diagnosis:
+          type: string
+        treatmentPlan:
+          type: string
+        followUpDate:
+          type: string
+        additionalNotes:
+          type: string
+        prescription:
+          type: array
+          items:
+            $ref: '#/components/schemas/PrescriptionItem'
+        updatedAt:
+          type: string
+
+    Addendum:
+      type: object
+      required: [id, note, authorName, createdAt]
+      properties:
+        id:
+          type: string
+        note:
+          type: string
+        authorName:
+          type: string
+        createdAt:
+          type: string
