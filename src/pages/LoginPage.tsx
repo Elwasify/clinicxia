@@ -1,172 +1,92 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../features/auth/useAuthStore';
 import { authApi } from '../api';
 import { Input } from '../components/ui/Input';
 import { ClinicxiaLogo } from '../components/ui/ClinicxiaLogo';
 import { ForgotAdminModal } from '../features/auth/ForgotAdminModal';
-import { mockUsers } from '../api/mocks/data';
+import { DemoLogin } from '../features/auth/DemoLogin';
+import { Role } from '../types';
+
+const roleNames: Record<Role, string> = { DOCTOR: 'الطبيب', RECEPTIONIST: 'الاستقبال', ADMIN: 'المدير' };
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login } = useAuthStore();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(searchParams.get('reason') === 'session-expired' ? 'انتهت صلاحية الجلسة. سجّل الدخول للمتابعة.' : '');
   const [loading, setLoading] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
+  const hintedRole = searchParams.get('role') as Role | null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCredentials = async (nextUsername: string, nextPassword: string) => {
     setError('');
-    if (!username.trim() || !password) {
+    if (!nextUsername.trim() || !nextPassword) {
       setError('يرجى إدخال اسم المستخدم وكلمة المرور');
       return;
     }
     setLoading(true);
     try {
-      const res = await authApi.login({ username, password });
-      login(res.user, res.token);
-      navigate('/');
-    } catch (err: unknown) {
-      const e = err as { message?: string };
-      setError(e.message || 'بيانات الدخول غير صحيحة');
+      const response = await authApi.login({ username: nextUsername, password: nextPassword });
+      login(response.user, response.token);
+      navigate('/', { replace: true });
+    } catch (requestError: unknown) {
+      const apiError = requestError as { message?: string };
+      setError(apiError.message || 'بيانات الدخول غير صحيحة');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickDemo = (userIndex: number) => {
-    const user = mockUsers[userIndex];
-    setUsername(user.username);
-    setPassword('123456');
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    void handleCredentials(username, password);
   };
 
   return (
-        <div className="min-h-screen flex items-center justify-center p-4 text-right relative overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #0b2545 0%, #0f4c75 50%, #0f7c82 100%)' }}
-        >
-          {/* Background decorative elements */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-white/5" />
-            <div className="absolute -bottom-48 -left-24 w-[500px] h-[500px] rounded-full bg-white/3" />
-            <div className="absolute top-1/2 left-1/4 w-64 h-64 rounded-full bg-clinic-teal/10" />
-          </div>
-
-          <div className="relative w-full max-w-[420px]">
-            {/* Card */}
-            <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
-              {/* Top accent bar */}
-              <div className="h-1.5 bg-gradient-to-l from-clinic-teal to-clinic-navy" />
-
-                <div className="p-8 sm:p-10">
-                  {/* Brand */}
-                  <div className="flex flex-col items-center text-center mb-8">
-                    <ClinicxiaLogo variant="stacked" size="lg" showSubtitle />
-                    <p className="mt-3 text-xs text-slate-500 leading-6">
-                      منصة إدارة العيادة المتكاملة
-                    </p>
-                  </div>
-
-                  {/* Error message */}
-                  {error && (
-                    <div className="mb-5 flex items-center gap-2.5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
-                      <span className="material-symbols-outlined text-red-500 text-lg shrink-0">error</span>
-                      <span className="text-xs font-semibold text-red-700">{error}</span>
-                    </div>
-                  )}
+    <main dir="rtl" className="relative flex min-h-screen items-center justify-center overflow-hidden p-4 text-right" style={{ background: 'linear-gradient(135deg, #0b2545 0%, #0f4c75 50%, #0f7c82 100%)' }}>
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-white/5" />
+        <div className="absolute -bottom-48 -left-24 h-[500px] w-[500px] rounded-full bg-white/5" />
+      </div>
+      <div className="relative w-full max-w-[460px]">
+        <div className="overflow-hidden rounded-3xl bg-white shadow-2xl">
+          <div className="h-1.5 bg-gradient-to-l from-clinic-teal to-clinic-navy" />
+          <div className="p-7 sm:p-9">
+            <div className="mb-7 flex flex-col items-center text-center">
+              <ClinicxiaLogo variant="stacked" size="lg" showSubtitle />
+              <p className="mt-3 text-xs text-slate-500">منصة إدارة عيادة أ.د. عفيفي فهمي</p>
+            </div>
+            {hintedRole && roleNames[hintedRole] && (
+              <div className="mb-4 rounded-xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-xs leading-5 text-cyan-900">
+                مسار الدخول المقترح: <strong>{roleNames[hintedRole]}</strong>. الصلاحيات والدور الفعليان يحددهما حسابك في النظام.
+              </div>
+            )}
+            {error && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold leading-5 text-red-700">{error}</div>}
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                        <Input
-                          label="اسم المستخدم"
-                          placeholder="أدخل اسم المستخدم"
-                          value={username}
-                          onChange={(e) => setUsername(e.target.value)}
-                          icon={<span className="material-symbols-outlined text-lg">person</span>}
-                          required
-                        />
-
-                  <Input
-                    type="password"
-                    label="كلمة المرور"
-                    placeholder="أدخل كلمة المرور"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    icon={<span className="material-symbols-outlined text-lg">lock</span>}
-                    required
-                  />
-
-              <div className="flex items-center justify-between text-xs pt-1">
-                <label className="flex items-center gap-2 cursor-pointer text-slate-600 font-medium select-none">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded accent-clinic-teal w-4 h-4"
-                  />
-                  <span>تذكرني</span>
-                </label>
-
-                    <button
-                      type="button"
-                      onClick={() => setShowForgot(true)}
-                      className="text-clinic-teal hover:text-clinic-teal-light font-semibold hover:underline cursor-pointer transition-colors"
-                    >
-                      نسيت كلمة المرور؟
-                    </button>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full mt-2 py-3.5 px-6 rounded-2xl bg-gradient-to-l from-clinic-teal to-clinic-navy text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all hover:opacity-90 active:scale-[0.98] cursor-pointer disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined text-lg">login</span>
-                        <span>تسجيل الدخول</span>
-                      </>
-                    )}
-                  </button>
-                </form>
-
-                {/* Demo buttons */}
-                <div className="mt-6 pt-5 border-t border-slate-100">
-                  <p className="text-center text-[11px] font-bold text-slate-400 mb-3 uppercase tracking-wider">
-                    دخول سريع للتجربة
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleQuickDemo(0)}
-                      className="flex items-center justify-center gap-2 py-2.5 px-3 text-xs bg-slate-50 hover:bg-teal-50 border border-slate-200 hover:border-clinic-teal/40 rounded-xl text-slate-700 font-semibold transition-all cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-sm text-clinic-teal">stethoscope</span>
-                      <span>الطبيب</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleQuickDemo(1)}
-                      className="flex items-center justify-center gap-2 py-2.5 px-3 text-xs bg-slate-50 hover:bg-teal-50 border border-slate-200 hover:border-clinic-teal/40 rounded-xl text-slate-700 font-semibold transition-all cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-sm text-clinic-navy">desk</span>
-                      <span>الاستقبال</span>
-                    </button>
-                  </div>
-                </div>
+              <Input label="اسم المستخدم" placeholder="أدخل اسم المستخدم" value={username} onChange={(event) => setUsername(event.target.value)} icon={<span className="material-symbols-outlined text-lg">person</span>} required autoComplete="username" />
+              <Input type="password" label="كلمة المرور" placeholder="أدخل كلمة المرور" value={password} onChange={(event) => setPassword(event.target.value)} icon={<span className="material-symbols-outlined text-lg">lock</span>} required autoComplete="current-password" />
+              <div className="flex justify-end pt-0.5">
+                <button type="button" onClick={() => setShowForgot(true)} className="text-xs font-semibold text-clinic-teal transition hover:underline">نسيت كلمة المرور؟</button>
               </div>
-            </div>
+              <button type="submit" disabled={loading} className="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-l from-clinic-teal to-clinic-navy px-6 py-3.5 text-sm font-bold text-white shadow-md transition hover:opacity-90 disabled:opacity-50">
+                {loading ? <span role="status" aria-label="جارٍ تسجيل الدخول" className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <><span className="material-symbols-outlined text-lg">login</span><span>تسجيل الدخول</span></>}
+              </button>
+            </form>
 
-            {/* Footer note */}
-            <p className="text-center text-white/50 text-[11px] mt-5">
-              Clinicxia © {new Date().getFullYear()} — جميع الحقوق محفوظة
-            </p>
+            <DemoLogin loading={loading} onLogin={(demoUsername, demoPassword) => void handleCredentials(demoUsername, demoPassword)} />
           </div>
-
-          <ForgotAdminModal isOpen={showForgot} onClose={() => setShowForgot(false)} />
         </div>
-        );
+        <div className="mt-5 flex items-center justify-center gap-3 text-xs text-white/70">
+          <Link to="/" className="font-semibold hover:text-white">العودة للصفحة الرئيسية</Link>
+          <span aria-hidden="true">·</span>
+          <span>CLINICXIA © {new Date().getFullYear()}</span>
+        </div>
+      </div>
+      <ForgotAdminModal isOpen={showForgot} onClose={() => setShowForgot(false)} />
+    </main>
+  );
 };

@@ -1,4 +1,4 @@
-export type Role = 'DOCTOR' | 'RECEPTIONIST';
+export type Role = 'DOCTOR' | 'RECEPTIONIST' | 'ADMIN';
 
 export interface User {
   id: string;
@@ -94,8 +94,29 @@ export interface Visit {
   status: QueueStatus;
   examinationStatus: ExaminationStatus;
   arrivalTime: string;
+  visitDate: string;
   examination?: ExaminationData;
   addenda?: Addendum[];
+}
+
+export interface ActivityEvent {
+  id: string;
+  type: 'patient_registered' | 'visit_created' | 'consultation_started' | 'draft_saved' | 'exam_approved' | 'visit_completed';
+  description: string;
+  actorName: string;
+  patientName?: string;
+  createdAt: string;
+}
+
+export interface DashboardSummary {
+  totalPatients: number;
+  visitsToday: number;
+  waitingPatients: number;
+  completedExaminations: number;
+  doctorCount: number;
+  staffCount: number;
+  visitsByDay: { date: string; label: string; count: number }[];
+  recentActivity: ActivityEvent[];
 }
 
 export interface QueueCounters {

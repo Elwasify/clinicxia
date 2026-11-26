@@ -2,10 +2,10 @@ import { apiClient } from './client';
 import {
   AuthResponse,
   CreatePatientInput,
+  DashboardSummary,
   Doctor,
   ExaminationData,
   Patient,
-  QueueCounters,
   QueueStatus,
   User,
   Visit,
@@ -34,6 +34,16 @@ export const authApi = {
 
 export const doctorsApi = {
   list: () => apiClient<Doctor[]>('/doctors'),
+};
+
+export const dashboardApi = {
+  getSummary: () => apiClient<DashboardSummary>('/dashboard/summary'),
+  getPublicSummary: () => apiClient<Pick<DashboardSummary, 'totalPatients' | 'visitsToday' | 'completedExaminations'>>('/public/summary'),
+};
+
+export const adminApi = {
+  listUsers: () => apiClient<User[]>('/admin/users'),
+  resetDemo: () => apiClient<{ message: string }>('/admin/reset-demo', { method: 'POST' }),
 };
 
 export const patientsApi = {

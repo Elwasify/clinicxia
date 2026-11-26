@@ -1,240 +1,65 @@
-import { Doctor, Patient, Visit, User } from '../../types';
+import { ActivityEvent, Doctor, Patient, User, Visit } from '../../types';
 
-export const mockUsers: User[] = [
-  {
-    id: 'u-1',
-    username: 'doctor',
-    fullName: 'أ.د. عفيفي فهمي عفيفي أحمد',
-    role: 'DOCTOR',
-    doctorId: 'doc-1',
-  },
-  {
-    id: 'u-2',
-    username: 'reception',
-    fullName: 'إسلام أحمد نور',
-    role: 'RECEPTIONIST',
-  },
-  {
-    id: 'u-3',
-    username: 'doctor2',
-    fullName: 'د. حازم المنشاوي',
-    role: 'DOCTOR',
-    doctorId: 'doc-2',
-  },
-];
+const today = () => new Date().toISOString().slice(0, 10);
+const timeAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
+const clone = <T,>(value: T): T => structuredClone(value);
 
-export const mockDoctors: Doctor[] = [
-  {
-    id: 'doc-1',
-    name: 'أ.د. عفيفي فهمي عفيفي أحمد',
-    title: 'أستاذ الأمراض الباطنية — كلية الطب جامعة الزقازيق',
-    specialty: 'دكتوراه الأمراض الباطنية — استشاري الكبد والجهاز الهضمي',
-    availableToday: true,
-  },
-  {
-    id: 'doc-2',
-    name: 'د. حازم المنشاوي',
-    title: 'استشاري مساعد الأمراض الباطنة',
-    specialty: 'باطنة عامة وسكري',
-    availableToday: true,
-  },
-];
-
-export let mockPatients: Patient[] = [
-  {
-    id: 'p-1',
-    code: 'CX-1042',
-    name: 'حازم عبد الله توفيق',
-    phone: '01012345678',
-    gender: 'male',
-    dateOfBirth: '1982-05-14',
-    age: 44,
-    drugAllergies: ['بنسلين (Penicillin)'],
-    chronicDiseases: ['ارتفاع ضغط الدم المزمن', 'دهون على الكبد'],
-    lastVisitDate: '2026-09-12',
-    visitCount: 3,
-  },
-  {
-    id: 'p-2',
-    code: 'CX-1043',
-    name: 'أيمن كمال الشاذلي',
-    phone: '01198765432',
-    gender: 'male',
-    dateOfBirth: '1975-11-20',
-    age: 51,
-    drugAllergies: ['سلفا (Sulfonamides)'],
-    chronicDiseases: ['السكري من النوع الثاني'],
-    lastVisitDate: '2026-08-25',
-    visitCount: 5,
-  },
-  {
-    id: 'p-3',
-    code: 'CX-1044',
-    name: 'فاطمة محمود النجار',
-    phone: '01234567890',
-    gender: 'female',
-    dateOfBirth: '1990-03-08',
-    age: 36,
-    drugAllergies: [],
-    chronicDiseases: ['حساسية صدرية مزمنة'],
-    lastVisitDate: '2026-09-01',
-    visitCount: 2,
-  },
-  {
-    id: 'p-4',
-    code: 'CX-1045',
-    name: 'محمود السيد البشبيشي',
-    phone: '01511223344',
-    gender: 'male',
-    dateOfBirth: '1968-07-22',
-    age: 58,
-    drugAllergies: ['أسبرين (Aspirin/NSAIDs)'],
-    chronicDiseases: ['قرحة معدية هضمية', 'قصور كلوي مزمن مرحلة 2'],
-    lastVisitDate: '2026-09-18',
-    visitCount: 4,
-  },
-  {
-    id: 'p-5',
-    code: 'CX-1046',
-    name: 'مريم علي عبد العال',
-    phone: '01044556677',
-    gender: 'female',
-    dateOfBirth: '1995-12-05',
-    age: 31,
-    drugAllergies: [],
-    chronicDiseases: [],
-    lastVisitDate: '2026-09-20',
-    visitCount: 1,
-  },
-];
-
-export let mockVisits: Visit[] = [
-  {
-    id: 'v-1',
-    queueNumber: '01',
-    patientId: 'p-1',
-    patientName: 'حازم عبد الله توفيق',
-    patientPhone: '01012345678',
-    patientCode: 'CX-1042',
-    patientGender: 'male',
-    patientAge: 44,
-    drugAllergies: ['بنسلين (Penicillin)'],
-    chronicDiseases: ['ارتفاع ضغط الدم المزمن', 'دهون على الكبد'],
-    doctorId: 'doc-1',
-    doctorName: 'أ.د. عفيفي فهمي عفيفي أحمد',
-    visitType: 'follow_up',
-    status: 'in_consultation',
-    examinationStatus: 'draft',
-    arrivalTime: '09:15 ص',
-    examination: {
-      chiefComplaint: 'ألم متكرر بالجهة اليمنى من البطن وحموضة بعد تناول الطعام الدسم.',
-      clinicalExamination: 'البطن لينة مع ألم بسيط باللمس في الربع العلوي الأيمن، ضغط الدم 135/85، النبض 76.',
-      diagnosis: 'التهاب معدي مريئي ارتجاعي مع دهون كبدية خفيفة (GERD + Hepatic Steatosis)',
-      treatmentPlan: 'اتباع حمية غذائية منخفضة الدهون، فحص وظائف كبد بعد شهر.',
-      followUpDate: '2026-10-26',
-      additionalNotes: 'تأكيد تجنب مشتقات البنسلين نهائياً بسبب التحسس السابق.',
-      prescription: [
-        {
-          id: 'rx-1',
-          drugName: 'Nexium 40mg',
-          dose: 'قرص واحد',
-          frequency: 'مرة يومياً قبل الإفطار بنصف ساعة',
-          duration: '30 يوماً',
-          instructions: 'يبلع كاملاً مع الماء',
-        },
-        {
-          id: 'rx-2',
-          drugName: 'Ursofalk 250mg',
-          dose: 'كبسولة واحدة',
-          frequency: 'مرتين يومياً بعد الوجبات',
-          duration: 'شهرين',
-          instructions: 'بعد الغداء والعشاء',
-        },
-      ],
-      updatedAt: new Date().toISOString(),
+// A single synthetic seed feeds every screen when VITE_USE_MOCKS is enabled.
+// All patient names, phone numbers, and records below are fabricated for demos.
+export const demoSeed = {
+  users: [
+    { id: 'u-doctor', username: 'doctor.demo', fullName: 'أ.د. عفيفي فهمي', role: 'DOCTOR' as const, doctorId: 'doc-1' },
+    { id: 'u-reception', username: 'reception.demo', fullName: 'موظف الاستقبال التجريبي', role: 'RECEPTIONIST' as const },
+    { id: 'u-admin', username: 'admin.demo', fullName: 'مدير العيادة التجريبي', role: 'ADMIN' as const },
+  ] satisfies User[],
+  doctors: [
+    { id: 'doc-1', name: 'أ.د. عفيفي فهمي', title: 'طبيب العيادة', specialty: 'الأمراض الباطنية', availableToday: true },
+    { id: 'doc-2', name: 'د. طبيب العرض الثاني', title: 'طبيب تجريبي', specialty: 'باطنة عامة', availableToday: true },
+  ] satisfies Doctor[],
+  patients: [
+    { id: 'p-demo-1', code: 'DEMO-001', name: 'سليم مثال تجريبي', phone: '01000000001', gender: 'male', dateOfBirth: '1982-05-14', age: 44, drugAllergies: ['بنسلين (Penicillin)'], chronicDiseases: ['ارتفاع ضغط الدم'], lastVisitDate: today(), visitCount: 3, createdAt: timeAgo(120) },
+    { id: 'p-demo-2', code: 'DEMO-002', name: 'ليلى بيانات تجريبية', phone: '01000000002', gender: 'female', dateOfBirth: '1990-03-08', age: 36, drugAllergies: [], chronicDiseases: ['سكري من النوع الثاني'], lastVisitDate: today(), visitCount: 2, createdAt: timeAgo(90) },
+    { id: 'p-demo-3', code: 'DEMO-003', name: 'مروان نموذج تجريبي', phone: '01000000003', gender: 'male', dateOfBirth: '1975-11-20', age: 51, drugAllergies: ['سلفا (Sulfonamides)'], chronicDiseases: [], lastVisitDate: today(), visitCount: 1, createdAt: timeAgo(70) },
+    { id: 'p-demo-4', code: 'DEMO-004', name: 'نور حالة تجريبية', phone: '01000000004', gender: 'female', dateOfBirth: '1995-12-05', age: 31, drugAllergies: [], chronicDiseases: [], lastVisitDate: today(), visitCount: 1, createdAt: timeAgo(45) },
+  ] satisfies Patient[],
+  visits: [
+    {
+      id: 'v-demo-1', queueNumber: '01', patientId: 'p-demo-1', patientName: 'سليم مثال تجريبي', patientPhone: '01000000001', patientCode: 'DEMO-001', patientGender: 'male', patientAge: 44,
+      drugAllergies: ['بنسلين (Penicillin)'], chronicDiseases: ['ارتفاع ضغط الدم'], doctorId: 'doc-1', doctorName: 'أ.د. عفيفي فهمي', visitType: 'follow_up', status: 'in_consultation', examinationStatus: 'draft', arrivalTime: '09:15 ص', visitDate: today(),
+      examination: { chiefComplaint: 'بيانات توضيحية لشكوى المريض التجريبي.', clinicalExamination: 'فحص تجريبي لأغراض العرض فقط.', diagnosis: 'تشخيص تجريبي غير حقيقي', treatmentPlan: 'خطة علاج توضيحية فقط.', prescription: [], updatedAt: timeAgo(15) },
     },
-  },
-  {
-    id: 'v-2',
-    queueNumber: '02',
-    patientId: 'p-2',
-    patientName: 'أيمن كمال الشاذلي',
-    patientPhone: '01198765432',
-    patientCode: 'CX-1043',
-    patientGender: 'male',
-    patientAge: 51,
-    drugAllergies: ['سلفا (Sulfonamides)'],
-    chronicDiseases: ['السكري من النوع الثاني'],
-    doctorId: 'doc-1',
-    doctorName: 'أ.د. عفيفي فهمي عفيفي أحمد',
-    visitType: 'consultation',
-    status: 'waiting',
-    examinationStatus: 'pending',
-    arrivalTime: '09:40 ص',
-  },
-  {
-    id: 'v-3',
-    queueNumber: '03',
-    patientId: 'p-3',
-    patientName: 'فاطمة محمود النجار',
-    patientPhone: '01234567890',
-    patientCode: 'CX-1044',
-    patientGender: 'female',
-    patientAge: 36,
-    drugAllergies: [],
-    chronicDiseases: ['حساسية صدرية مزمنة'],
-    doctorId: 'doc-1',
-    doctorName: 'أ.د. عفيفي فهمي عفيفي أحمد',
-    visitType: 'new',
-    status: 'waiting',
-    examinationStatus: 'pending',
-    arrivalTime: '10:05 ص',
-  },
-  {
-    id: 'v-4',
-    queueNumber: '04',
-    patientId: 'p-4',
-    patientName: 'محمود السيد البشبيشي',
-    patientPhone: '01511223344',
-    patientCode: 'CX-1045',
-    patientGender: 'male',
-    patientAge: 58,
-    drugAllergies: ['أسبرين (Aspirin/NSAIDs)'],
-    chronicDiseases: ['قرحة معدية هضمية', 'قصور كلوي مزمن مرحلة 2'],
-    doctorId: 'doc-2',
-    doctorName: 'د. حازم المنشاوي',
-    visitType: 'follow_up',
-    status: 'waiting',
-    examinationStatus: 'pending',
-    arrivalTime: '10:30 ص',
-  },
-  {
-    id: 'v-5',
-    queueNumber: '00',
-    patientId: 'p-5',
-    patientName: 'مريم علي عبد العال',
-    patientPhone: '01044556677',
-    patientCode: 'CX-1046',
-    patientGender: 'female',
-    patientAge: 31,
-    drugAllergies: [],
-    chronicDiseases: [],
-    doctorId: 'doc-1',
-    doctorName: 'أ.د. عفيفي فهمي عفيفي أحمد',
-    visitType: 'new',
-    status: 'completed',
-    examinationStatus: 'approved',
-    arrivalTime: '08:30 ص',
-    examination: {
-      chiefComplaint: 'فحص دوري للاطمئنان العام.',
-      clinicalExamination: 'العلامات الحيوية طبيعية تماماً، البطن لينة ولا يوجد تضخم بالطحال أو الكبد.',
-      diagnosis: 'حالة صحية عامة ممتازة، فحص وقائي دوري.',
-      treatmentPlan: 'الاستمرار في ممارسة الرياضة والغذاء المتوازن وشرب كميات كافية من الماء.',
-      followUpDate: '2027-03-26',
-      additionalNotes: 'لا توجد أدوية علاجية مطلوبة حالياً.',
-      prescription: [],
-      updatedAt: '2026-09-26T08:50:00Z',
-      approvedAt: '2026-09-26T08:55:00Z',
+    {
+      id: 'v-demo-2', queueNumber: '02', patientId: 'p-demo-2', patientName: 'ليلى بيانات تجريبية', patientPhone: '01000000002', patientCode: 'DEMO-002', patientGender: 'female', patientAge: 36,
+      drugAllergies: [], chronicDiseases: ['سكري من النوع الثاني'], doctorId: 'doc-1', doctorName: 'أ.د. عفيفي فهمي', visitType: 'consultation', status: 'waiting', examinationStatus: 'pending', arrivalTime: '09:40 ص', visitDate: today(),
     },
-  },
-];
+    {
+      id: 'v-demo-3', queueNumber: '03', patientId: 'p-demo-3', patientName: 'مروان نموذج تجريبي', patientPhone: '01000000003', patientCode: 'DEMO-003', patientGender: 'male', patientAge: 51,
+      drugAllergies: ['سلفا (Sulfonamides)'], chronicDiseases: [], doctorId: 'doc-2', doctorName: 'د. طبيب العرض الثاني', visitType: 'new', status: 'waiting', examinationStatus: 'pending', arrivalTime: '10:05 ص', visitDate: today(),
+    },
+    {
+      id: 'v-demo-4', queueNumber: '04', patientId: 'p-demo-4', patientName: 'نور حالة تجريبية', patientPhone: '01000000004', patientCode: 'DEMO-004', patientGender: 'female', patientAge: 31,
+      drugAllergies: [], chronicDiseases: [], doctorId: 'doc-1', doctorName: 'أ.د. عفيفي فهمي', visitType: 'new', status: 'completed', examinationStatus: 'approved', arrivalTime: '08:30 ص', visitDate: today(),
+      examination: { chiefComplaint: 'فحص تجريبي.', clinicalExamination: 'معلومات صحية تجريبية.', diagnosis: 'حالة تجريبية سليمة', treatmentPlan: 'لا توجد خطة علاج فعلية.', prescription: [], updatedAt: timeAgo(40), approvedAt: timeAgo(38) },
+    },
+  ] satisfies Visit[],
+  activity: [
+    { id: 'event-demo-1', type: 'exam_approved', description: 'تم اعتماد كشف تجريبي', actorName: 'أ.د. عفيفي فهمي', patientName: 'نور حالة تجريبية', createdAt: timeAgo(38) },
+    { id: 'event-demo-2', type: 'consultation_started', description: 'بدأ كشف تجريبي', actorName: 'أ.د. عفيفي فهمي', patientName: 'سليم مثال تجريبي', createdAt: timeAgo(30) },
+    { id: 'event-demo-3', type: 'visit_created', description: 'سُجلت زيارة تجريبية', actorName: 'موظف الاستقبال التجريبي', patientName: 'ليلى بيانات تجريبية', createdAt: timeAgo(25) },
+    { id: 'event-demo-4', type: 'patient_registered', description: 'سُجل ملف مريض تجريبي', actorName: 'موظف الاستقبال التجريبي', patientName: 'مروان نموذج تجريبي', createdAt: timeAgo(20) },
+  ] satisfies ActivityEvent[],
+};
+
+export const mockUsers: User[] = clone(demoSeed.users);
+export const mockDoctors: Doctor[] = clone(demoSeed.doctors);
+export const mockPatients: Patient[] = clone(demoSeed.patients);
+export const mockVisits: Visit[] = clone(demoSeed.visits);
+export const mockActivity: ActivityEvent[] = clone(demoSeed.activity);
+
+export function resetMockData() {
+  mockUsers.splice(0, mockUsers.length, ...clone(demoSeed.users));
+  mockDoctors.splice(0, mockDoctors.length, ...clone(demoSeed.doctors));
+  mockPatients.splice(0, mockPatients.length, ...clone(demoSeed.patients));
+  mockVisits.splice(0, mockVisits.length, ...clone(demoSeed.visits));
+  mockActivity.splice(0, mockActivity.length, ...clone(demoSeed.activity));
+}

@@ -54,7 +54,7 @@ export async function apiClient<T>(
     }
 
     if (response.status === 401) {
-      if (onUnauthorizedCallback) {
+      if (onUnauthorizedCallback && !endpoint.endsWith('/auth/login')) {
         onUnauthorizedCallback();
       }
       throw {

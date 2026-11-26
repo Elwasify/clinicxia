@@ -6,10 +6,13 @@ info:
 servers:
   - url: /api
     description: Current deployment or mock server
+security:
+  - bearerAuth: []
 
 paths:
   /auth/login:
     post:
+      security: []
       summary: User authentication
       requestBody:
         required: true
@@ -68,6 +71,61 @@ paths:
       responses:
         '200':
           description: Logged out successfully
+
+  /public/summary:
+    get:
+      security: []
+      summary: Read aggregate clinic counts without patient-identifying data
+      responses:
+        '200':
+          description: Public aggregate counts for the welcome page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [totalPatients, visitsToday, completedExaminations]
+                properties:
+                  totalPatients:
+                    type: integer
+                  visitsToday:
+                    type: integer
+                  completedExaminations:
+                    type: integer
+
+  /dashboard/summary:
+    get:
+      summary: Read dashboard counts and recent activity from the clinic data source
+      responses:
+        '200':
+          description: Aggregate clinic data for an authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSummary'
+
+  /admin/users:
+    get:
+      summary: List clinic users for an administrator
+      responses:
+        '200':
+          description: Users without authentication credentials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '403':
+          description: Administrator role required
+
+  /admin/reset-demo:
+    post:
+      summary: Restore the shared demo seed (demo mode only)
+      responses:
+        '200':
+          description: Demo data restored
+        '403':
+          description: Administrator role and demo mode are required
 
   /doctors:
     get:
@@ -363,7 +421,7 @@ components:
           type: string
         role:
           type: string
-          enum: [DOCTOR, RECEPTIONIST]
+          enum: [DOCTOR, RECEPTIONIST, ADMIN]
         doctorId:
           type: string
 
@@ -472,7 +530,7 @@ components:
 
     Visit:
       type: object
-      required: [id, queueNumber, patientId, patientName, patientCode, doctorId, doctorName, visitType, status, arrivalTime]
+      required: [id, queueNumber, patientId, patientName, patientCode, doctorId, doctorName, visitType, status, arrivalTime, visitDate]
       properties:
         id:
           type: string
@@ -513,6 +571,9 @@ components:
           enum: [pending, draft, approved]
         arrivalTime:
           type: string
+        visitDate:
+          type: string
+          format: date
         examination:
           $ref: '#/components/schemas/ExaminationData'
         addenda:
@@ -571,3 +632,59 @@ components:
           type: string
         createdAt:
           type: string
+    DashboardSummary:
+      type: object
+      required: [totalPatients, visitsToday, waitingPatients, completedExaminations, doctorCount, staffCount, visitsByDay, recentActivity]
+      properties:
+        totalPatients:
+          type: integer
+        visitsToday:
+          type: integer
+        waitingPatients:
+          type: integer
+        completedExaminations:
+          type: integer
+        doctorCount:
+          type: integer
+        staffCount:
+          type: integer
+        visitsByDay:
+          type: array
+          items:
+            type: object
+            required: [date, label, count]
+            properties:
+              date:
+                type: string
+                format: date
+              label:
+                type: string
+              count:
+                type: integer
+        recentActivity:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActivityEvent'
+    ActivityEvent:
+      type: object
+      required: [id, type, description, actorName, createdAt]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [patient_registered, visit_created, consultation_started, draft_saved, exam_approved, visit_completed]
+        description:
+          type: string
+        actorName:
+          type: string
+        patientName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

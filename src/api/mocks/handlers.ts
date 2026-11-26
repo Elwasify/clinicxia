@@ -1,311 +1,240 @@
 import {
+  mockActivity,
   mockDoctors,
   mockPatients,
   mockVisits,
   mockUsers,
+  resetMockData,
 } from './data';
-import { CreatePatientInput, ExaminationData, QueueStatus } from '../../types';
+import { ActivityEvent, CreatePatientInput, ExaminationData, QueueStatus } from '../../types';
+
+const issuedTokens = new Map<string, string>();
+let originalFetch: typeof window.fetch | undefined;
+
+const jsonResponse = (data: unknown, status = 200) => new Response(JSON.stringify(data), {
+  status,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+const today = () => new Date().toISOString().slice(0, 10);
+
+function appendActivity(event: Omit<ActivityEvent, 'id' | 'createdAt'>) {
+  mockActivity.unshift({ id: `event-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, createdAt: new Date().toISOString(), ...event });
+}
 
 export function setupMockServer() {
-  if (typeof window === 'undefined') return;
-
-  const originalFetch = window.fetch;
+  if (typeof window === 'undefined' || originalFetch) return;
+  originalFetch = window.fetch;
 
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const urlString = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-
-    // Only intercept /api calls if mock is enabled
-    if (!urlString.includes('/api/')) {
-      return originalFetch(input, init);
-    }
+    if (!urlString.includes('/api/')) return originalFetch!(input, init);
 
     const url = new URL(urlString, window.location.origin);
     const pathname = url.pathname.replace(/^\/api/, '');
     const method = (init?.method || 'GET').toUpperCase();
+    const body = () => JSON.parse((init?.body as string) || '{}');
 
-    // Helper for JSON responses
-    const jsonResponse = (data: unknown, status = 200) => {
-      return new Response(JSON.stringify(data), {
-        status,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    };
+    await new Promise((resolve) => setTimeout(resolve, 60));
 
-    // Small simulated network latency
-    await new Promise((r) => setTimeout(r, 60));
-
-    // 1. Auth: /auth/login
     if (pathname === '/auth/login' && method === 'POST') {
-      const body = JSON.parse((init?.body as string) || '{}');
-      const user = mockUsers.find(
-        (u) => u.username.toLowerCase() === body.username?.trim().toLowerCase()
-      );
-
-      if (user && body.password === '123456') {
-        return jsonResponse({
-          token: `mock-jwt-token-${user.id}-${Date.now()}`,
-          user,
-        });
-      }
-
-      return jsonResponse({ message: 'اسم المستخدم أو كلمة المرور غير صحيحة' }, 401);
+      const inputBody = body();
+      const user = mockUsers.find((candidate) => candidate.username.toLowerCase() === inputBody.username?.trim().toLowerCase());
+      if (!user || inputBody.password !== '123456') return jsonResponse({ message: 'اسم المستخدم أو كلمة المرور غير صحيحة' }, 401);
+      const token = `mock-session-${user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      issuedTokens.set(token, user.id);
+      return jsonResponse({ token, user });
     }
 
-    // 2. Auth: /auth/me
-    if (pathname === '/auth/me' && method === 'GET') {
-      const authHeader = (init?.headers as Record<string, string>)?.[
-        'Authorization'
-      ] || '';
-      if (!authHeader.startsWith('Bearer ')) {
-        return jsonResponse({ message: 'غير مصرح به' }, 401);
-      }
-      return jsonResponse(mockUsers[0]);
+    if (pathname === '/public/summary' && method === 'GET') {
+      return jsonResponse({
+        totalPatients: mockPatients.length,
+        visitsToday: mockVisits.filter((visit) => visit.visitDate === today() && visit.status !== 'cancelled').length,
+        completedExaminations: mockVisits.filter((visit) => visit.visitDate === today() && visit.examinationStatus === 'approved').length,
+      });
     }
 
-    // 3. Auth: /auth/change-password
+    const authorization = new Headers(init?.headers).get('Authorization') || '';
+    const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
+    const currentUserId = issuedTokens.get(token);
+    const currentUser = mockUsers.find((candidate) => candidate.id === currentUserId);
+    if (!currentUser) return jsonResponse({ message: 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً.' }, 401);
+
+    if (pathname === '/auth/logout' && method === 'POST') {
+      issuedTokens.delete(token);
+      return jsonResponse({ message: 'تم تسجيل الخروج بنجاح' });
+    }
+    if (pathname === '/auth/me' && method === 'GET') return jsonResponse(currentUser);
+
+    const isAdmin = currentUser.role === 'ADMIN';
+    const isDoctor = currentUser.role === 'DOCTOR';
+    const isReceptionist = currentUser.role === 'RECEPTIONIST';
+    const deny = () => jsonResponse({ message: 'لا تملك الصلاحية لتنفيذ هذا الإجراء' }, 403);
+
+    if (pathname.startsWith('/admin/') && !isAdmin) return deny();
+    if (/^\/visits\/[^/]+\/(draft|approve|addendum)$/.test(pathname) && !isDoctor && !isAdmin) return deny();
+    if (pathname === '/voice/transcribe' && !isDoctor && !isAdmin) return deny();
+    if (pathname === '/visits' && method === 'POST' && !isReceptionist && !isAdmin) return deny();
+    if (/^\/patients(?:\/[^/]+)?$/.test(pathname) && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && !isReceptionist && !isAdmin) return deny();
+    if (/^\/visits\/[^/]+\/status$/.test(pathname) && !isReceptionist && !isDoctor && !isAdmin) return deny();
+
     if (pathname === '/auth/change-password' && method === 'POST') {
-      const body = JSON.parse((init?.body as string) || '{}');
-      if (body.oldPassword !== '123456') {
-        return jsonResponse({ message: 'كلمة المرور الحالية غير صحيحة' }, 400);
-      }
+      if (body().oldPassword !== '123456') return jsonResponse({ message: 'كلمة المرور الحالية غير صحيحة' }, 400);
       return jsonResponse({ message: 'تم تحديث كلمة المرور بنجاح' });
     }
 
-    // 4. Doctors: /doctors
-    if (pathname === '/doctors' && method === 'GET') {
-      return jsonResponse(mockDoctors);
+    if (pathname === '/dashboard/summary' && method === 'GET') {
+      const date = new Date(`${today()}T12:00:00`);
+      const days = Array.from({ length: 7 }, (_, index) => {
+        const day = new Date(date);
+        day.setDate(day.getDate() - (6 - index));
+        const dateKey = day.toISOString().slice(0, 10);
+        return {
+          date: dateKey,
+          label: day.toLocaleDateString('ar-EG', { weekday: 'short' }),
+          count: mockVisits.filter((visit) => visit.visitDate === dateKey && visit.status !== 'cancelled').length,
+        };
+      });
+      return jsonResponse({
+        totalPatients: mockPatients.length,
+        visitsToday: mockVisits.filter((visit) => visit.visitDate === today() && visit.status !== 'cancelled').length,
+        waitingPatients: mockVisits.filter((visit) => visit.visitDate === today() && visit.status === 'waiting').length,
+        completedExaminations: mockVisits.filter((visit) => visit.visitDate === today() && visit.examinationStatus === 'approved').length,
+        doctorCount: mockDoctors.length,
+        staffCount: mockUsers.filter((user) => user.role === 'RECEPTIONIST').length,
+        visitsByDay: days,
+        recentActivity: mockActivity.slice(0, 6),
+      });
     }
 
-    // 5. Patients: /patients
+    if (pathname === '/admin/users' && method === 'GET') return jsonResponse(mockUsers);
+    if (pathname === '/admin/reset-demo' && method === 'POST') {
+      if (import.meta.env.VITE_DEMO_MODE !== 'true') return jsonResponse({ message: 'وضع العرض التجريبي غير مفعّل' }, 403);
+      resetMockData();
+      return jsonResponse({ message: 'تمت إعادة بيانات العرض إلى حالتها الأولى' });
+    }
+
+    if (pathname === '/doctors' && method === 'GET') return jsonResponse(mockDoctors);
+
     if (pathname === '/patients' && method === 'GET') {
       const query = url.searchParams.get('query')?.toLowerCase() || '';
-      let list = [...mockPatients];
-      if (query) {
-        list = list.filter(
-          (p) =>
-            p.name.toLowerCase().includes(query) ||
-            p.phone.includes(query) ||
-            p.code.toLowerCase().includes(query)
-        );
-      }
+      const list = mockPatients.filter((patient) => !query || patient.name.toLowerCase().includes(query) || patient.phone.includes(query) || patient.code.toLowerCase().includes(query));
       return jsonResponse({ items: list, total: list.length });
     }
 
-    // Patients: create
     if (pathname === '/patients' && method === 'POST') {
-      const inputData = JSON.parse((init?.body as string) || '{}') as CreatePatientInput;
-
-      // Duplicate detection warning (same phone)
-      const existing = mockPatients.find((p) => p.phone === inputData.phone);
-      if (existing) {
-        return jsonResponse(
-          {
-            message: `رقم الهاتف مسجل بالفعل للمريض (${existing.name}) بكود ${existing.code}`,
-          },
-          409
-        );
-      }
-
-      const birthYear = new Date(inputData.dateOfBirth).getFullYear();
-      const currentYear = new Date().getFullYear();
-      const age = !isNaN(birthYear) ? currentYear - birthYear : undefined;
-
-      const newPatient = {
-        id: `p-${Date.now()}`,
-        code: `CX-${1040 + mockPatients.length + 1}`,
-        name: inputData.name,
-        phone: inputData.phone,
-        gender: inputData.gender,
-        dateOfBirth: inputData.dateOfBirth,
-        age,
-        drugAllergies: inputData.drugAllergies || [],
-        chronicDiseases: inputData.chronicDiseases || [],
-        lastVisitDate: '-',
-        visitCount: 0,
+      const input = body() as CreatePatientInput;
+      const existing = mockPatients.find((patient) => patient.phone === input.phone);
+      if (existing) return jsonResponse({ message: `رقم الهاتف مسجل بالفعل للمريض (${existing.name}) بكود ${existing.code}` }, 409);
+      const birthYear = new Date(input.dateOfBirth).getFullYear();
+      const patient = {
+        id: `p-${Date.now()}`, code: `DEMO-${String(100 + mockPatients.length + 1).padStart(3, '0')}`,
+        name: input.name, phone: input.phone, gender: input.gender, dateOfBirth: input.dateOfBirth,
+        age: Number.isNaN(birthYear) ? undefined : new Date().getFullYear() - birthYear,
+        drugAllergies: input.drugAllergies || [], chronicDiseases: input.chronicDiseases || [],
+        lastVisitDate: undefined, visitCount: 0, createdAt: new Date().toISOString(),
       };
-
-      mockPatients.unshift(newPatient);
-      return jsonResponse(newPatient, 201);
+      mockPatients.unshift(patient);
+      appendActivity({ type: 'patient_registered', description: 'تم تسجيل مريض', actorName: currentUser.fullName, patientName: patient.name });
+      return jsonResponse(patient, 201);
     }
 
-    // Patients: by ID
     const patientMatch = pathname.match(/^\/patients\/([^/]+)$/);
     if (patientMatch) {
-      const pId = patientMatch[1];
-      const patient = mockPatients.find((p) => p.id === pId);
+      const patient = mockPatients.find((item) => item.id === patientMatch[1]);
       if (!patient) return jsonResponse({ message: 'المريض غير موجود' }, 404);
-
       if (method === 'GET') {
-        const patientVisits = mockVisits
-          .filter((v) => v.patientId === pId)
-          .map((v) => ({
-            id: v.id,
-            date: v.examination?.updatedAt?.split('T')[0] || '2026-09-26',
-            doctorName: v.doctorName,
-            diagnosis: v.examination?.diagnosis || 'كشف قيد الانتظار',
-            status: v.status,
-          }));
-
+        const patientVisits = mockVisits.filter((visit) => visit.patientId === patient.id).map((visit) => ({
+          id: visit.id, date: visit.visitDate, doctorName: visit.doctorName,
+          diagnosis: visit.examination?.diagnosis || 'كشف قيد الانتظار', status: visit.status,
+        }));
         return jsonResponse({ ...patient, visits: patientVisits });
       }
-
       if (method === 'PUT') {
-        const updates = JSON.parse((init?.body as string) || '{}');
-        Object.assign(patient, updates);
+        Object.assign(patient, body());
         return jsonResponse(patient);
       }
     }
 
-    // 6. Visits: /visits
     if (pathname === '/visits' && method === 'GET') {
       const doctorId = url.searchParams.get('doctorId');
-      let visits = [...mockVisits];
-      if (doctorId) {
-        visits = visits.filter((v) => v.doctorId === doctorId);
-      }
-      return jsonResponse(visits);
+      return jsonResponse(doctorId ? mockVisits.filter((visit) => visit.doctorId === doctorId) : mockVisits);
     }
 
-    // Visits: create new visit in queue
     if (pathname === '/visits' && method === 'POST') {
-      const body = JSON.parse((init?.body as string) || '{}');
-      const patient = mockPatients.find((p) => p.id === body.patientId);
-      const doctor = mockDoctors.find((d) => d.id === body.doctorId);
-
-      if (!patient || !doctor) {
-        return jsonResponse({ message: 'بيانات المريض أو الطبيب غير صحيحة' }, 400);
-      }
-
+      const input = body();
+      const patient = mockPatients.find((item) => item.id === input.patientId);
+      const doctor = mockDoctors.find((item) => item.id === input.doctorId);
+      if (!patient || !doctor) return jsonResponse({ message: 'بيانات المريض أو الطبيب غير صحيحة' }, 400);
       patient.visitCount = (patient.visitCount || 0) + 1;
-      patient.lastVisitDate = new Date().toISOString().split('T')[0];
-
-      const queueNumber = String(mockVisits.length + 1).padStart(2, '0');
+      patient.lastVisitDate = today();
       const now = new Date();
-      const arrivalTime = now.toLocaleTimeString('ar-EG', {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-
-      const newVisit = {
-        id: `v-${Date.now()}`,
-        queueNumber,
-        patientId: patient.id,
-        patientName: patient.name,
-        patientPhone: patient.phone,
-        patientCode: patient.code,
-        patientGender: patient.gender,
-        patientAge: patient.age,
-        drugAllergies: patient.drugAllergies,
-        chronicDiseases: patient.chronicDiseases,
-        doctorId: doctor.id,
-        doctorName: doctor.name,
-        visitType: body.visitType || 'new',
-        status: 'waiting' as QueueStatus,
-        examinationStatus: 'pending' as const,
-        arrivalTime,
-        examination: {
-          chiefComplaint: '',
-          clinicalExamination: '',
-          diagnosis: '',
-          treatmentPlan: '',
-          prescription: [],
-        },
+      const visit = {
+        id: `v-${Date.now()}`, queueNumber: String(mockVisits.length + 1).padStart(2, '0'),
+        patientId: patient.id, patientName: patient.name, patientPhone: patient.phone, patientCode: patient.code,
+        patientGender: patient.gender, patientAge: patient.age, drugAllergies: patient.drugAllergies,
+        chronicDiseases: patient.chronicDiseases, doctorId: doctor.id, doctorName: doctor.name,
+        visitType: input.visitType || 'new', status: 'waiting' as const, examinationStatus: 'pending' as const,
+        arrivalTime: now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }), visitDate: today(),
       };
-
-      mockVisits.push(newVisit);
-      return jsonResponse(newVisit, 201);
+      mockVisits.push(visit);
+      appendActivity({ type: 'visit_created', description: 'تم تسجيل زيارة في الطابور', actorName: currentUser.fullName, patientName: patient.name });
+      return jsonResponse(visit, 201);
     }
 
-    // Visits: /visits/:id/status
     const statusMatch = pathname.match(/^\/visits\/([^/]+)\/status$/);
     if (statusMatch && method === 'PATCH') {
-      const visitId = statusMatch[1];
-      const body = JSON.parse((init?.body as string) || '{}');
-      const visit = mockVisits.find((v) => v.id === visitId);
+      const visit = mockVisits.find((item) => item.id === statusMatch[1]);
       if (!visit) return jsonResponse({ message: 'الكشف غير موجود' }, 404);
-
-      visit.status = body.status;
+      const status = body().status as QueueStatus;
+      if (isDoctor && status !== 'in_consultation' && status !== 'completed') return deny();
+      visit.status = status;
+      if (status === 'in_consultation') appendActivity({ type: 'consultation_started', description: 'بدأ الكشف', actorName: currentUser.fullName, patientName: visit.patientName });
+      if (status === 'completed') appendActivity({ type: 'visit_completed', description: 'اكتملت الزيارة', actorName: currentUser.fullName, patientName: visit.patientName });
       return jsonResponse(visit);
     }
 
-    // Visits: /visits/:id/draft
     const draftMatch = pathname.match(/^\/visits\/([^/]+)\/draft$/);
     if (draftMatch && method === 'PUT') {
-      const visitId = draftMatch[1];
-      const examData = JSON.parse((init?.body as string) || '{}') as ExaminationData;
-      const visit = mockVisits.find((v) => v.id === visitId);
+      const visit = mockVisits.find((item) => item.id === draftMatch[1]);
       if (!visit) return jsonResponse({ message: 'الكشف غير موجود' }, 404);
-
-      if (visit.examinationStatus === 'approved') {
-        return jsonResponse(
-          { message: 'هذا الكشف معتمد مسبقاً وغير قابل للتعديل المباشر' },
-          403
-        );
-      }
-
-      visit.examination = {
-        ...examData,
-        updatedAt: new Date().toISOString(),
-      };
+      if (visit.examinationStatus === 'approved') return jsonResponse({ message: 'هذا الكشف معتمد مسبقاً وغير قابل للتعديل المباشر' }, 403);
+      visit.examination = { ...(body() as ExaminationData), updatedAt: new Date().toISOString() };
       visit.examinationStatus = 'draft';
+      appendActivity({ type: 'draft_saved', description: 'تم حفظ مسودة الكشف', actorName: currentUser.fullName, patientName: visit.patientName });
       return jsonResponse(visit);
     }
 
-    // Visits: /visits/:id/approve
     const approveMatch = pathname.match(/^\/visits\/([^/]+)\/approve$/);
     if (approveMatch && method === 'POST') {
-      const visitId = approveMatch[1];
-      const examData = JSON.parse((init?.body as string) || '{}') as ExaminationData;
-      const visit = mockVisits.find((v) => v.id === visitId);
+      const visit = mockVisits.find((item) => item.id === approveMatch[1]);
       if (!visit) return jsonResponse({ message: 'الكشف غير موجود' }, 404);
-
-      visit.examination = {
-        ...examData,
-        approvedAt: new Date().toISOString(),
-      };
+      visit.examination = { ...(body() as ExaminationData), approvedAt: new Date().toISOString() };
       visit.examinationStatus = 'approved';
       visit.status = 'completed';
+      appendActivity({ type: 'exam_approved', description: 'تم اعتماد الكشف وإنهاء الزيارة', actorName: currentUser.fullName, patientName: visit.patientName });
       return jsonResponse(visit);
     }
 
-    // Visits: /visits/:id/addendum
     const addendumMatch = pathname.match(/^\/visits\/([^/]+)\/addendum$/);
     if (addendumMatch && method === 'POST') {
-      const visitId = addendumMatch[1];
-      const body = JSON.parse((init?.body as string) || '{}');
-      const visit = mockVisits.find((v) => v.id === visitId);
+      const visit = mockVisits.find((item) => item.id === addendumMatch[1]);
       if (!visit) return jsonResponse({ message: 'الكشف غير موجود' }, 404);
-
-      const addendum = {
-        id: `add-${Date.now()}`,
-        note: body.note,
-        authorName: 'أ.د. عفيفي فهمي عفيفي أحمد',
-        createdAt: new Date().toLocaleString('ar-EG'),
-      };
-
-      if (!visit.addenda) visit.addenda = [];
-      visit.addenda.push(addendum);
+      const addendum = { id: `add-${Date.now()}`, note: body().note, authorName: currentUser.fullName, createdAt: new Date().toLocaleString('ar-EG') };
+      visit.addenda = [...(visit.addenda || []), addendum];
       return jsonResponse(addendum, 201);
     }
 
-    // Visits: by ID
-    const singleVisitMatch = pathname.match(/^\/visits\/([^/]+)$/);
-    if (singleVisitMatch && method === 'GET') {
-      const visitId = singleVisitMatch[1];
-      const visit = mockVisits.find((v) => v.id === visitId);
-      if (!visit) return jsonResponse({ message: 'الكشف غير موجود' }, 404);
-      return jsonResponse(visit);
+    const visitMatch = pathname.match(/^\/visits\/([^/]+)$/);
+    if (visitMatch && method === 'GET') {
+      const visit = mockVisits.find((item) => item.id === visitMatch[1]);
+      return visit ? jsonResponse(visit) : jsonResponse({ message: 'الكشف غير موجود' }, 404);
     }
 
-    // 7. Voice Transcription: /voice/transcribe
     if (pathname === '/voice/transcribe' && method === 'POST') {
-      // Mock transcription response
-      return jsonResponse({
-        text: 'يعاني المريض من تقلصات متكررة في المعدة مع شعور بالغثيان بعد الأكل.',
-        confidence: 0.96,
-      });
+      return jsonResponse({ text: 'نص تفريغ توضيحي للبيانات التجريبية.', confidence: 0.96 });
     }
 
-    return originalFetch(input, init);
+    return originalFetch!(input, init);
   };
 }
