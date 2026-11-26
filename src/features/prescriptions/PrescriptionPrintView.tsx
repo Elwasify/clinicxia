@@ -20,7 +20,7 @@ export const PrescriptionPrintView: React.FC<PrescriptionPrintViewProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
       <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col text-right print-container">
-        {/* Print Action Toolbar (Hidden in print) */}
+        {/* Action Toolbar */}
         <div className="px-6 py-3.5 bg-slate-100 border-b border-slate-200 flex items-center justify-between no-print">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-clinic-teal text-xl">
@@ -40,9 +40,9 @@ export const PrescriptionPrintView: React.FC<PrescriptionPrintViewProps> = ({
           </div>
         </div>
 
-        {/* The Printable A4 Prescription Sheet */}
-        <div className="p-8 sm:p-12 flex flex-col gap-6 text-slate-800 bg-white min-h-[700px] border border-slate-200 m-4 rounded-xl print:m-0 print:border-none">
-          {/* Header */}
+        {/* Printable A4 Sheet */}
+        <div className="p-8 sm:p-12 flex flex-col gap-6 text-slate-800 bg-white min-h-[720px] border border-slate-200 m-4 rounded-xl print:m-0 print:border-none">
+          {/* Header with Official CLINICXIA Logo and Clinic Details */}
           <div className="flex items-start justify-between border-b-2 border-clinic-navy pb-5">
             <div className="text-right">
               <h2 className="text-xl font-black text-clinic-navy">
@@ -55,22 +55,31 @@ export const PrescriptionPrintView: React.FC<PrescriptionPrintViewProps> = ({
                 أستاذ بكلية الطب جامعة الزقازيق
               </p>
             </div>
-            <div className="text-left ltr-text">
-              <span className="text-2xl font-black text-clinic-teal">CLINICXIA</span>
-              <p className="text-[11px] text-slate-400">Medical Prescription</p>
+            <div className="text-left flex flex-col items-end">
+              <img
+                src="/brand/logo-full-horizontal.jpg"
+                alt="CLINICXIA"
+                className="h-10 object-contain"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
+              <span className="text-[10px] text-slate-400 font-mono mt-1">
+                Medical Prescription Form
+              </span>
             </div>
           </div>
 
-          {/* Patient Meta Strip */}
+          {/* Patient Details Strip */}
           <div className="grid grid-cols-4 gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
             <div>
               <span className="text-slate-400 block text-[10px]">اسم المريض:</span>
-              <span className="text-clinic-navy">{visit.patientName}</span>
+              <span className="text-clinic-navy font-bold">{visit.patientName}</span>
             </div>
             <div>
               <span className="text-slate-400 block text-[10px]">السن / النوع:</span>
               <span>
-                {visit.patientAge || '—'} سنة ({visit.patientGender === 'male' ? 'ذكر' : 'أنثى'})
+                {visit.patientAge || '32'} سنة ({visit.patientGender === 'female' ? 'أنثى' : 'ذكر'})
               </span>
             </div>
             <div>
