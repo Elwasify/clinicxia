@@ -4,9 +4,12 @@ import {
   mockPatients,
   mockVisits,
   mockUsers,
+  mockClinicProfile,
+  setMockClinicProfile,
+  demoSeed,
   resetMockData,
 } from './data';
-import { ActivityEvent, CreatePatientInput, ExaminationData, QueueStatus } from '../../types';
+import { ActivityEvent, ClinicProfileInput, CreatePatientInput, ExaminationData, QueueStatus } from '../../types';
 
 const issuedTokens = new Map<string, string>();
 let originalFetch: typeof window.fetch | undefined;
@@ -34,19 +37,27 @@ export function setupMockServer() {
     const pathname = url.pathname.replace(/^\/api/, '');
     const method = (init?.method || 'GET').toUpperCase();
     const body = () => JSON.parse((init?.body as string) || '{}');
+    const demoMode = import.meta.env.VITE_DEMO_MODE === 'true';
 
     await new Promise((resolve) => setTimeout(resolve, 60));
 
     if (pathname === '/auth/login' && method === 'POST') {
+      if (!demoMode) return jsonResponse({ message: 'البيانات التجريبية غير مفعّلة.' }, 503);
       const inputBody = body();
       const user = mockUsers.find((candidate) => candidate.username.toLowerCase() === inputBody.username?.trim().toLowerCase());
-      if (!user || inputBody.password !== '123456') return jsonResponse({ message: 'اسم المستخدم أو كلمة المرور غير صحيحة' }, 401);
+      if (!user || inputBody.password !== demoSeed.credentials.password) return jsonResponse({ message: 'اسم المستخدم أو كلمة المرور غير صحيحة' }, 401);
       const token = `mock-session-${user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       issuedTokens.set(token, user.id);
       return jsonResponse({ token, user });
     }
 
+    if (pathname === '/clinic/profile' && method === 'GET') {
+      if (!demoMode || !mockClinicProfile) return jsonResponse({ message: 'بيانات العيادة غير مُعدة.' }, 404);
+      return jsonResponse(mockClinicProfile);
+    }
+
     if (pathname === '/public/summary' && method === 'GET') {
+      if (!demoMode) return jsonResponse({ totalPatients: 0, visitsToday: 0, completedExaminations: 0 });
       return jsonResponse({
         totalPatients: mockPatients.length,
         visitsToday: mockVisits.filter((visit) => visit.visitDate === today() && visit.status !== 'cancelled').length,
@@ -72,15 +83,42 @@ export function setupMockServer() {
     const deny = () => jsonResponse({ message: 'لا تملك الصلاحية لتنفيذ هذا الإجراء' }, 403);
 
     if (pathname.startsWith('/admin/') && !isAdmin) return deny();
-    if (/^\/visits\/[^/]+\/(draft|approve|addendum)$/.test(pathname) && !isDoctor && !isAdmin) return deny();
+    if (/^\/visits\/[^/]+\/(draft|approve|addendum)$/.test(pathname) && !isDoctor) return deny();
     if (pathname === '/voice/transcribe' && !isDoctor && !isAdmin) return deny();
     if (pathname === '/visits' && method === 'POST' && !isReceptionist && !isAdmin) return deny();
     if (/^\/patients(?:\/[^/]+)?$/.test(pathname) && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && !isReceptionist && !isAdmin) return deny();
     if (/^\/visits\/[^/]+\/status$/.test(pathname) && !isReceptionist && !isDoctor && !isAdmin) return deny();
 
     if (pathname === '/auth/change-password' && method === 'POST') {
-      if (body().oldPassword !== '123456') return jsonResponse({ message: 'كلمة المرور الحالية غير صحيحة' }, 400);
+      if (body().oldPassword !== demoSeed.credentials.password) return jsonResponse({ message: 'كلمة المرور الحالية غير صحيحة' }, 400);
       return jsonResponse({ message: 'تم تحديث كلمة المرور بنجاح' });
+    }
+
+    if (pathname === '/clinic/profile' && ['POST', 'PUT'].includes(method)) {
+      if (!isAdmin) return deny();
+      if (!demoMode) return jsonResponse({ message: 'لا يمكن تعديل بيانات العيادة في وضع الخادم التجريبي.' }, 403);
+      const input = body() as ClinicProfileInput;
+      const existing = mockClinicProfile;
+      if (method === 'POST' && existing) return jsonResponse({ message: 'بيانات العيادة مُعدة بالفعل.' }, 409);
+      if (method === 'PUT' && !existing) return jsonResponse({ message: 'بيانات العيادة غير مُعدة.' }, 404);
+      if (!input.name?.trim() || !input.specialty?.trim() || !input.address?.trim() || !input.phoneNumbers?.length || !input.workingHours?.trim()) {
+        return jsonResponse({ message: 'يرجى استكمال بيانات العيادة المطلوبة.' }, 400);
+      }
+      const profile = { ...input, logoUrl: input.logoUrl ?? existing?.logoUrl };
+      setMockClinicProfile(profile);
+      return jsonResponse(profile, method === 'POST' ? 201 : 200);
+    }
+
+    if (pathname === '/clinic/profile/logo' && method === 'POST') {
+      if (!isAdmin) return deny();
+      if (!demoMode) return jsonResponse({ message: 'وضع العرض التجريبي غير مفعّل.' }, 403);
+      if (!mockClinicProfile) return jsonResponse({ message: 'احفظ بيانات العيادة أولاً.' }, 404);
+      const formData = init?.body instanceof FormData ? init.body : null;
+      const file = formData?.get('file');
+      if (!(file instanceof File) || !file.type.startsWith('image/')) return jsonResponse({ message: 'يرجى اختيار ملف صورة صالح.' }, 400);
+      const logoUrl = URL.createObjectURL(file);
+      setMockClinicProfile({ ...mockClinicProfile, logoUrl });
+      return jsonResponse({ logoUrl });
     }
 
     if (pathname === '/dashboard/summary' && method === 'GET') {
@@ -109,12 +147,12 @@ export function setupMockServer() {
 
     if (pathname === '/admin/users' && method === 'GET') return jsonResponse(mockUsers);
     if (pathname === '/admin/reset-demo' && method === 'POST') {
-      if (import.meta.env.VITE_DEMO_MODE !== 'true') return jsonResponse({ message: 'وضع العرض التجريبي غير مفعّل' }, 403);
+      if (!demoMode) return jsonResponse({ message: 'وضع العرض التجريبي غير مفعّل' }, 403);
       resetMockData();
       return jsonResponse({ message: 'تمت إعادة بيانات العرض إلى حالتها الأولى' });
     }
 
-    if (pathname === '/doctors' && method === 'GET') return jsonResponse(mockDoctors);
+    if (pathname === '/doctors' && method === 'GET') return jsonResponse(demoMode ? mockDoctors : []);
 
     if (pathname === '/patients' && method === 'GET') {
       const query = url.searchParams.get('query')?.toLowerCase() || '';
@@ -210,6 +248,10 @@ export function setupMockServer() {
       const visit = mockVisits.find((item) => item.id === approveMatch[1]);
       if (!visit) return jsonResponse({ message: 'الكشف غير موجود' }, 404);
       visit.examination = { ...(body() as ExaminationData), approvedAt: new Date().toISOString() };
+      const approvedBy = mockDoctors.find((doctor) => doctor.id === currentUser.doctorId);
+      visit.approvedByDoctorId = currentUser.doctorId;
+      visit.approvedByName = currentUser.fullName;
+      visit.approvedBySpecialty = approvedBy?.specialty;
       visit.examinationStatus = 'approved';
       visit.status = 'completed';
       appendActivity({ type: 'exam_approved', description: 'تم اعتماد الكشف وإنهاء الزيارة', actorName: currentUser.fullName, patientName: visit.patientName });

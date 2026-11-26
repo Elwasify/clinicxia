@@ -3,7 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../features/auth/useAuthStore';
 import { authApi } from '../api';
 import { Input } from '../components/ui/Input';
-import { ClinicxiaLogo } from '../components/ui/ClinicxiaLogo';
+import { ClinicIdentity } from '../components/ui/ClinicIdentity';
+import { useClinic } from '../features/clinic/ClinicContext';
 import { ForgotAdminModal } from '../features/auth/ForgotAdminModal';
 import { DemoLogin } from '../features/auth/DemoLogin';
 import { Role } from '../types';
@@ -14,6 +15,7 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { login } = useAuthStore();
+  const { profile } = useClinic();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(searchParams.get('reason') === 'session-expired' ? 'انتهت صلاحية الجلسة. سجّل الدخول للمتابعة.' : '');
@@ -56,8 +58,8 @@ export const LoginPage: React.FC = () => {
           <div className="h-1.5 bg-gradient-to-l from-clinic-teal to-clinic-navy" />
           <div className="p-7 sm:p-9">
             <div className="mb-7 flex flex-col items-center text-center">
-              <ClinicxiaLogo variant="stacked" size="lg" showSubtitle />
-              <p className="mt-3 text-xs text-slate-500">منصة إدارة عيادة أ.د. عفيفي فهمي</p>
+              <ClinicIdentity variant="stacked" size="lg" showSubtitle showClinicName={false} />
+              <p className="mt-3 text-xs text-slate-500">{profile?.name ? `منصة إدارة ${profile.name}` : 'منصة إدارة العيادات'}</p>
             </div>
             {hintedRole && roleNames[hintedRole] && (
               <div className="mb-4 rounded-xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-xs leading-5 text-cyan-900">

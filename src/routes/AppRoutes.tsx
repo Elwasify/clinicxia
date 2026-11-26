@@ -11,6 +11,8 @@ import { ReceptionDashboard } from '../features/reception/ReceptionDashboard';
 import { DoctorDashboard } from '../features/doctor/DoctorDashboard';
 import { DailyRecordPage } from '../pages/DailyRecordPage';
 import { PatientsDatabasePage } from '../pages/PatientsDatabasePage';
+import { ClinicProfilePage } from '../pages/ClinicProfilePage';
+import { ClinicProfileGuard } from '../features/clinic/ClinicProfileGuard';
 import { useAuthStore } from '../features/auth/useAuthStore';
 import { Role } from '../types';
 
@@ -27,7 +29,7 @@ function RoleBasedHome() {
 function HomeEntry() {
   const { isAuthenticated, user } = useAuthStore();
   if (!isAuthenticated || !user) return <WelcomePage />;
-  return <AppLayout><RoleBasedHome /></AppLayout>;
+  return <ClinicProfileGuard><AppLayout><RoleBasedHome /></AppLayout></ClinicProfileGuard>;
 }
 
 export function AppRoutes() {
@@ -38,13 +40,14 @@ export function AppRoutes() {
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
       <Route path="/" element={<HomeEntry />} />
 
-      <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+      <Route element={<ProtectedRoute><ClinicProfileGuard><AppLayout /></ClinicProfileGuard></ProtectedRoute>}>
         <Route path="daily-record" element={<ProtectedRoute allowedRoles={allRoles}><DailyRecordPage /></ProtectedRoute>} />
         <Route path="patients" element={<ProtectedRoute allowedRoles={allRoles}><PatientsDatabasePage /></ProtectedRoute>} />
         <Route path="patients/new" element={<ProtectedRoute allowedRoles={['RECEPTIONIST']}><PatientsDatabasePage initialCreate /></ProtectedRoute>} />
         <Route path="examination" element={<ProtectedRoute allowedRoles={['DOCTOR']}><DoctorDashboard /></ProtectedRoute>} />
         <Route path="admin/doctors" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDirectoryPage kind="doctors" /></ProtectedRoute>} />
         <Route path="admin/staff" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDirectoryPage kind="staff" /></ProtectedRoute>} />
+        <Route path="admin/clinic-profile" element={<ProtectedRoute allowedRoles={['ADMIN']}><ClinicProfilePage /></ProtectedRoute>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppRoutes } from './routes/AppRoutes';
 import { setupMockServer } from './api/mocks/handlers';
+import { ClinicProvider } from './features/clinic/ClinicContext';
 import { registerAuthCacheCleanup, useAuthStore } from './features/auth/useAuthStore';
 import { setOnUnauthorized } from './api/client';
 import '@fontsource-variable/cairo';
@@ -37,9 +38,11 @@ if (rootElement) {
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <ClinicProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </ClinicProvider>
       </QueryClientProvider>
     </React.StrictMode>
   );

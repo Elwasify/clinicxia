@@ -92,6 +92,85 @@ paths:
                   completedExaminations:
                     type: integer
 
+  /clinic/profile:
+    get:
+      security: []
+      summary: Read the active clinic profile
+      responses:
+        '200':
+          description: Clinic identity and contact information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicProfile'
+        '404':
+          description: Clinic profile has not been configured
+    post:
+      summary: Create the first clinic profile (administrator only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClinicProfileInput'
+      responses:
+        '201':
+          description: Clinic profile created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicProfile'
+        '403':
+          description: Administrator role required
+    put:
+      summary: Update the clinic profile (administrator only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClinicProfileInput'
+      responses:
+        '200':
+          description: Clinic profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicProfile'
+        '403':
+          description: Administrator role required
+        '404':
+          description: Clinic profile has not been configured
+
+  /clinic/profile/logo:
+    post:
+      summary: Upload an optional clinic logo (administrator only)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Logo uploaded and profile updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [logoUrl]
+                properties:
+                  logoUrl:
+                    type: string
+                    format: uri
+        '403':
+          description: Administrator role required
+
   /dashboard/summary:
     get:
       summary: Read dashboard counts and recent activity from the clinic data source
@@ -449,6 +528,46 @@ components:
         availableToday:
           type: boolean
 
+    ClinicProfile:
+      type: object
+      required: [name, address, phoneNumbers, specialty, workingHours]
+      properties:
+        name:
+          type: string
+        logoUrl:
+          type: string
+          format: uri
+        address:
+          type: string
+        phoneNumbers:
+          type: array
+          items:
+            type: string
+        specialty:
+          type: string
+        workingHours:
+          type: string
+
+    ClinicProfileInput:
+      type: object
+      required: [name, address, phoneNumbers, specialty, workingHours]
+      properties:
+        name:
+          type: string
+        logoUrl:
+          type: string
+          format: uri
+        address:
+          type: string
+        phoneNumbers:
+          type: array
+          items:
+            type: string
+        specialty:
+          type: string
+        workingHours:
+          type: string
+
     Patient:
       type: object
       required: [id, code, name, phone, gender, dateOfBirth]
@@ -559,6 +678,14 @@ components:
         doctorId:
           type: string
         doctorName:
+          type: string
+        doctorSpecialty:
+          type: string
+        approvedByDoctorId:
+          type: string
+        approvedByName:
+          type: string
+        approvedBySpecialty:
           type: string
         visitType:
           type: string

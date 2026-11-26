@@ -21,6 +21,19 @@ export interface Doctor {
   availableToday: boolean;
 }
 
+export interface ClinicProfile {
+  name: string;
+  logoUrl?: string;
+  address: string;
+  phoneNumbers: string[];
+  specialty: string;
+  workingHours: string;
+}
+
+export type ClinicProfileInput = Omit<ClinicProfile, 'logoUrl'> & {
+  logoUrl?: string;
+};
+
 export interface Patient {
   id: string;
   code: string;
@@ -90,6 +103,10 @@ export interface Visit {
   chronicDiseases: string[];
   doctorId: string;
   doctorName: string;
+  doctorSpecialty?: string;
+  approvedByDoctorId?: string;
+  approvedByName?: string;
+  approvedBySpecialty?: string;
   visitType: VisitType;
   status: QueueStatus;
   examinationStatus: ExaminationStatus;

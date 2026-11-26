@@ -7,6 +7,7 @@ const links = [
   { to: '/admin/staff', label: 'الموظفون', description: 'استعراض حسابات فريق الاستقبال.', icon: UsersRound },
   { to: '/patients', label: 'المرضى', description: 'فتح قاعدة بيانات المرضى.', icon: BadgeCheck },
   { to: '/daily-record', label: 'سجل اليوم', description: 'مراجعة الطابور وحالات الزيارات.', icon: ClipboardList },
+  { to: '/admin/clinic-profile', label: 'بيانات العيادة', description: 'تحديث العنوان والتخصص وأرقام التواصل.', icon: BadgeCheck },
 ];
 
 export function AdminDashboard() {

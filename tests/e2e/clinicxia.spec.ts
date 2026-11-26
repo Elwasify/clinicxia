@@ -1,4 +1,5 @@
 import { expect, test, Page } from '@playwright/test';
+import { demoSeed } from '../../src/api/mocks/data';
 
 const profiles = {
   DOCTOR: { button: 'دخول كـ الطبيب', heading: 'غرفة الكشف الطبي' },
@@ -11,6 +12,15 @@ async function loginAs(page: Page, role: keyof typeof profiles) {
   if (currentPath !== '/login') await page.goto(`/login?role=${role}`);
   await page.getByRole('button', { name: profiles[role].button }).click();
   await expect(page.getByRole('heading', { name: profiles[role].heading })).toBeVisible();
+}
+
+async function loginWithCredentials(page: Page, username: string) {
+  const currentPath = await page.evaluate(() => window.location.pathname).catch(() => '');
+  if (currentPath !== '/login') await page.goto('/login');
+  await page.getByLabel('اسم المستخدم').fill(username);
+  await page.getByLabel('كلمة المرور').fill(demoSeed.credentials.password);
+  await page.getByRole('button', { name: 'تسجيل الدخول' }).click();
+  await expect(page.getByRole('heading', { name: profiles.DOCTOR.heading })).toBeVisible();
 }
 
 async function logout(page: Page) {
@@ -36,7 +46,7 @@ test('welcome page routes all roles and every displayed navigation link opens a 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'إدارة أذكى.. رعاية طبية أفضل.' })).toBeVisible();
   await expectNoSidebar(page);
-  await expect(page.getByText('عيادة أ.د. عفيفي فهمي', { exact: true })).toBeVisible();
+  await expect(page.getByText(demoSeed.clinicProfile.name, { exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'دخول الطبيب' }).click();
   await expect(page).toHaveURL(/role=DOCTOR/);
   await page.getByRole('button', { name: profiles.DOCTOR.button }).click();
@@ -88,9 +98,11 @@ test('welcome page routes all roles and every displayed navigation link opens a 
 test('route guards return 403 for every cross-role dashboard pair', async ({ page }) => {
   const cases = [
     { role: 'DOCTOR', path: '/admin/staff' },
+    { role: 'DOCTOR', path: '/admin/clinic-profile' },
     { role: 'DOCTOR', path: '/patients/new' },
     { role: 'RECEPTIONIST', path: '/examination' },
     { role: 'RECEPTIONIST', path: '/admin/staff' },
+    { role: 'RECEPTIONIST', path: '/admin/clinic-profile' },
     { role: 'ADMIN', path: '/examination' },
     { role: 'ADMIN', path: '/patients/new' },
   ] as const;
@@ -109,11 +121,36 @@ test('route guards return 403 for every cross-role dashboard pair', async ({ pag
 test('receptionist to doctor visit flow saves examination and appears in the patient history', async ({ page }) => {
   const patientName = 'رحلة العرض التجريبية';
   const diagnosis = 'تشخيص آلي تجريبي';
+  const clinicName = `${demoSeed.clinicProfile.name} - نسخة اختبار`;
+  const firstDoctor = demoSeed.doctors[0];
+  const secondDoctor = demoSeed.doctors[1];
+  const secondDoctorUser = demoSeed.users.find((user) => user.doctorId === secondDoctor.id)!;
+  const secondDoctorVisit = demoSeed.visits.find((visit) => visit.doctorId === secondDoctor.id && visit.status === 'waiting')!;
   const consoleErrors: string[] = [];
   page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
   page.on('pageerror', (error) => consoleErrors.push(error.message));
 
-  await loginAs(page, 'RECEPTIONIST');
+  await loginAs(page, 'ADMIN');
+  await clickMoreItem(page, 'بيانات العيادة');
+  await page.getByLabel('اسم العيادة').fill(clinicName);
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'clinic-logo.svg',
+    mimeType: 'image/svg+xml',
+    buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#0f7c82"/></svg>'),
+  });
+  await page.getByRole('button', { name: 'حفظ بيانات العيادة' }).click();
+  await expect(page.getByText('تم حفظ بيانات العيادة.')).toBeVisible();
+  await expect(page.getByRole('banner')).toContainText(clinicName);
+  await expect(page.getByRole('banner').getByRole('img', { name: `شعار ${clinicName}` })).toBeVisible();
+  await expect(page).toHaveTitle(`${clinicName} | CLINICXIA`);
+  await logout(page);
+  await page.getByRole('link', { name: 'العودة للصفحة الرئيسية' }).click();
+  await expect(page.getByText(clinicName, { exact: true })).toBeVisible();
+  await expect(page).toHaveTitle(`${clinicName} | CLINICXIA`);
+
+  await page.locator('header').getByRole('link', { name: 'تسجيل الدخول' }).click();
+  await page.getByRole('button', { name: profiles.RECEPTIONIST.button }).click();
+  await expect(page.getByRole('heading', { name: profiles.RECEPTIONIST.heading })).toBeVisible();
   await page.getByRole('button', { name: 'مريض جديد' }).click();
   await page.getByRole('button', { name: 'تسجيل مريض جديد' }).click();
   await page.getByLabel('الاسم الكامل').fill(patientName);
@@ -135,6 +172,11 @@ test('receptionist to doctor visit flow saves examination and appears in the pat
   await page.getByRole('button', { name: 'اعتماد الكشف وإنهاؤه' }).click();
   await page.getByRole('button', { name: 'نعم، إنهاء الكشف' }).click();
   await expect(page.getByRole('button', { name: 'طباعة الروشتة الرسمية' })).toBeVisible();
+  await page.getByRole('button', { name: 'طباعة الروشتة الرسمية' }).click();
+  const firstPrescription = page.locator('.print-container');
+  await expect(firstPrescription).toContainText(clinicName);
+  await expect(firstPrescription).toContainText(firstDoctor.name);
+  await page.getByRole('button', { name: 'إغلاق', exact: true }).click();
   await page.getByRole('button', { name: 'الرجوع للقائمة' }).click();
 
   await logout(page);
@@ -147,6 +189,32 @@ test('receptionist to doctor visit flow saves examination and appears in the pat
   const patientRow = page.getByRole('row', { name: new RegExp(patientName) });
   await patientRow.getByRole('button', { name: 'عرض الملف' }).click();
   await expect(page.getByText(diagnosis, { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'إغلاق', exact: true }).click();
+
+  await logout(page);
+  await loginWithCredentials(page, secondDoctorUser.username);
+  await expect(page.getByText(secondDoctorVisit.patientName, { exact: true }).first()).toBeVisible();
+  await page.getByRole('button', { name: `إدخال (${secondDoctorVisit.patientName})` }).click();
+  await expect(page.getByRole('heading', { name: secondDoctorVisit.patientName })).toBeVisible();
+  await page.getByLabel('الشكوى الرئيسية').fill('شكوى توثيق للطبيب الثاني.');
+  await page.getByLabel('الفحص السريري').fill('نتائج فحص توضيحية.');
+  await page.getByLabel('التشخيص الطبي السريري').fill('تشخيص الزيارة الثانية.');
+  await page.getByLabel('خطة العلاج والملاحظات').fill('خطة متابعة توضيحية.');
+  await expect(page.getByText('المسودة محفوظة')).toBeVisible({ timeout: 10_000 });
+  await page.getByRole('button', { name: 'اعتماد الكشف وإنهاؤه' }).click();
+  await page.getByRole('button', { name: 'نعم، إنهاء الكشف' }).click();
+  await page.getByRole('button', { name: 'طباعة الروشتة الرسمية' }).click();
+  const secondPrescription = page.locator('.print-container');
+  await expect(secondPrescription).toContainText(clinicName);
+  await expect(secondPrescription).toContainText(secondDoctor.name);
+  await expect(secondPrescription).not.toContainText(firstDoctor.name);
+  await page.getByRole('button', { name: 'إغلاق', exact: true }).click();
+
+  await logout(page);
+  await loginAs(page, 'ADMIN');
+  await page.getByRole('button', { name: 'إعادة ضبط بيانات العرض' }).click();
+  await expect(page.getByText('تمت إعادة الضبط')).toBeVisible();
+  await expect(page.getByRole('banner')).toContainText(demoSeed.clinicProfile.name);
   expect(consoleErrors).toEqual([]);
 });
 

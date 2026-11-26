@@ -66,3 +66,10 @@ This document records the architectural and design decisions made during the ref
 - Cairo, JetBrains Mono, and Material Symbols are bundled locally so the application renders without external font requests.
 - Navigation only exposes operational destinations backed by current API data: the doctor workspace, reception queue and patient registration, patient records, and administrator read-only directories. Appointment booking, laboratory/imaging orders, finance, permission editing, and generic reports remain out of the interface until their data and API operations exist.
 - Doctor examination mode uses the existing visit endpoint for the journey, examination draft, approval, medical history, prescription, and addendum. The examination form retains unsaved-change protection and a visible save/approval action.
+
+## 9. Clinic-Independent Product Identity
+- CLINICXIA is a multi-clinic product. No clinic or clinician identity is embedded in user-facing components; the active `ClinicProfile` is fetched once through `GET /clinic/profile` and shared through `ClinicProvider` / `useClinic()`.
+- The profile owns the clinic name, optional logo, address, contact numbers, specialties, and working hours. The CLINICXIA product mark and core colors remain fixed; an uploaded clinic logo is shown alongside the product logo.
+- Administrators create the profile during first run and edit it from **بيانات العيادة**. Other users cannot enter the workspace before setup is complete.
+- Each visit stores the assigned clinician separately from the clinician who approved it. Printed prescriptions identify the approving clinician and read clinic details from `useClinic()`.
+- Synthetic clinic and clinician identities remain only in the central `src/api/mocks/data.ts` demo seed. Mock login/profile/stats do not expose demo records when `VITE_DEMO_MODE` is disabled.

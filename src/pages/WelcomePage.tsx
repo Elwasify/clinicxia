@@ -5,7 +5,8 @@ import {
   ClipboardPlus, FileHeart, HeartPulse, ShieldCheck, Stethoscope, UsersRound,
 } from 'lucide-react';
 import { dashboardApi } from '../api';
-import { ClinicxiaLogo } from '../components/ui/ClinicxiaLogo';
+import { ClinicIdentity } from '../components/ui/ClinicIdentity';
+import { useClinic } from '../features/clinic/ClinicContext';
 
 const roles = [
   { role: 'DOCTOR', title: 'Doctor Dashboard', arabic: 'الطبيب', description: 'غرفة كشف متكاملة، توثيق ذكي، ووصفة طبية محفوظة.', icon: Stethoscope, color: 'text-cyan-800 bg-cyan-50' },
@@ -55,7 +56,7 @@ function ClinicPreview({ data, isLoading, isError }: {
       <div className="overflow-hidden rounded-xl bg-white">
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
           <div className="flex items-center gap-2">
-            <ClinicxiaLogo variant="icon-only" size="sm" />
+            <ClinicIdentity variant="icon-only" size="sm" showClinicName={false} />
             <div><p className="text-[10px] font-black text-clinic-navy">CLINICXIA</p><p className="text-[8px] text-slate-400">لوحة متابعة العيادة</p></div>
           </div>
           <span className="inline-flex items-center gap-1 rounded-full bg-cyan-50 px-2 py-1 text-[8px] font-bold text-cyan-800"><Activity size={10} />واجهة النظام</span>
@@ -98,6 +99,7 @@ function ClinicPreview({ data, isLoading, isError }: {
 }
 
 export function WelcomePage() {
+  const { profile } = useClinic();
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['public-clinic-summary'],
     queryFn: dashboardApi.getPublicSummary,
@@ -108,9 +110,7 @@ export function WelcomePage() {
     <header className="sticky top-0 z-30 border-b border-slate-100 bg-white/95 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-8">
         <a href="#top" aria-label="CLINICXIA - الرئيسية" className="flex shrink-0 items-center gap-3">
-          <ClinicxiaLogo size="md" showSubtitle={false} />
-          <span className="hidden h-8 w-px bg-slate-200 sm:block" />
-          <span className="hidden text-sm font-black text-clinic-navy sm:block">عيادة أ.د. عفيفي فهمي</span>
+          <ClinicIdentity size="md" showSubtitle={false} clinicNameClassName="hidden sm:inline" />
         </a>
         <nav aria-label="القائمة الرئيسية" className="hidden items-center gap-7 lg:flex">
           <a href="#top" aria-current="page" className="border-b-2 border-clinic-teal py-2 text-sm font-bold text-clinic-navy">الرئيسية</a>
@@ -128,7 +128,7 @@ export function WelcomePage() {
       <div aria-hidden="true" className="pointer-events-none absolute -end-48 top-20 h-96 w-96 rounded-full bg-cyan-50 blur-3xl" />
       <div className="relative z-10 order-1 py-4 lg:order-2 lg:py-0">
         <span className="inline-flex items-center gap-2 rounded-full border border-teal-100 bg-teal-50/80 px-3.5 py-2 text-xs font-bold text-teal-900">
-          <span className="h-2 w-2 rounded-full bg-clinic-teal" /> أهلاً بكم في عيادة أ.د. عفيفي فهمي
+          <span className="h-2 w-2 rounded-full bg-clinic-teal" /> أهلاً بكم{profile?.name ? ` في ${profile.name}` : ' في CLINICXIA'}
         </span>
         <h1 id="welcome-title" className="mt-6 max-w-2xl text-[2.35rem] font-black leading-[1.25] tracking-tight text-clinic-navy sm:text-5xl lg:text-[3.65rem]">
           إدارة أذكى..<br /><span className="text-clinic-teal">رعاية طبية أفضل.</span>
@@ -202,7 +202,7 @@ export function WelcomePage() {
 
     <footer className="border-t border-slate-200 bg-white px-4 py-5 sm:px-8">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 text-xs text-slate-500 sm:flex-row">
-        <div className="flex items-center gap-2"><ClinicxiaLogo variant="icon-only" size="sm" /><span>CLINICXIA · عيادة أ.د. عفيفي فهمي</span></div>
+        <div className="flex items-center gap-2"><span>CLINICXIA{profile?.name ? ` · ${profile.name}` : ''}</span></div>
         <p>منظومة موحدة لإدارة الزيارات وتوثيق الرعاية الطبية.</p>
         <Link to="/login" className="font-bold text-clinic-teal hover:underline">تسجيل الدخول</Link>
       </div>

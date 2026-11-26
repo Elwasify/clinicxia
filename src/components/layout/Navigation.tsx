@@ -26,6 +26,7 @@ const linksByRole = {
     { to: '/admin/staff', label: 'الموظفون', icon: 'badge' },
     { to: '/patients', label: 'المرضى', icon: 'group' },
     { to: '/daily-record', label: 'سجل اليوم', icon: 'event_note' },
+    { to: '/admin/clinic-profile', label: 'بيانات العيادة', icon: 'domain' },
   ],
 } as const;
 

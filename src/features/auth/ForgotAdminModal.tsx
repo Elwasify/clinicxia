@@ -11,7 +11,7 @@ export const ForgotAdminModal: React.FC<{ isOpen: boolean; onClose: () => void }
       isOpen={isOpen}
       onClose={onClose}
       title="استعادة كلمة المرور"
-      description="نظام إدارة حسابات عيادة كلينيكسيا"
+      description="إدارة حسابات المستخدمين في CLINICXIA"
       maxWidth="sm"
     >
       <div className="flex flex-col items-center text-center gap-4 py-2">
@@ -23,8 +23,8 @@ export const ForgotAdminModal: React.FC<{ isOpen: boolean; onClose: () => void }
         </p>
         <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-600 text-right space-y-1.5">
           <p className="font-bold text-clinic-navy">يرجى التواصل مع مسؤول النظام:</p>
-          <p>• د. عفيفي فهمي (إدارة العيادة)</p>
-          <p>• الدعم الفني للعيادة: 01096402629</p>
+          <p>• مسؤول النظام في الجهة</p>
+          <p>• فريق الدعم الفني المعتمد</p>
         </div>
         <Button variant="teal" size="sm" className="w-full mt-2" onClick={onClose}>
           حسناً، فهمت

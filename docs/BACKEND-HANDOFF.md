@@ -23,12 +23,19 @@ Follow the formal contract defined in [docs/openapi.yaml](file:///d:/programming
   - Persist `drugAllergies` and `chronicDiseases` arrays.
 - `GET /api/patients/:id`: Return patient profile together with array of previous visits.
 
+### Clinic Profile & First Run
+- `GET /api/clinic/profile`: Publicly return the configured clinic name, optional logo URL, address, contact numbers, specialties, and working hours. Return `404` until an administrator completes first-run setup; expose no private account or patient data here.
+- `POST /api/clinic/profile`: Allow an authenticated administrator to create the initial profile only.
+- `PUT /api/clinic/profile`: Allow an authenticated administrator to update the active profile.
+- `POST /api/clinic/profile/logo`: Accept an optional image upload from an administrator, store it, and return its URL. Keep the CLINICXIA product mark separate from this clinic logo.
+- Treat the clinic profile as the only source for clinic identity in the frontend. Do not add a clinic name, contact details, specialty, or clinician identity to frontend configuration or static content.
+
 ### Queue & Visits Lifecycle
 - `GET /api/visits`: Filter by `doctorId` and date (today).
 - `POST /api/visits`: Create visit record with sequential `queueNumber` (01, 02, ...).
 - `PATCH /api/visits/:id/status`: Update queue status (`waiting` -> `in_consultation` -> `completed` / `cancelled`).
 - `PUT /api/visits/:id/draft`: Save debounced examination draft. Reject with `403` if visit status is already `approved`.
-- `POST /api/visits/:id/approve`: Lock visit as approved, record `approvedAt` timestamp, and mark visit status as `completed`.
+- `POST /api/visits/:id/approve`: Lock visit as approved, record `approvedAt` timestamp, and mark visit status as `completed`. Set `approvedByDoctorId`, `approvedByName`, and `approvedBySpecialty` from the authenticated clinician and their database record; never accept those identity fields from the request body. Printed prescriptions use this approver identity.
 - `POST /api/visits/:id/addendum`: Append an official addendum to an approved visit with author and server timestamp.
 
 ### Voice Transcription Service

@@ -1,6 +1,8 @@
 import React from 'react';
 import { Visit } from '../../types';
 import { Button } from '../../components/ui/Button';
+import { ClinicIdentity } from '../../components/ui/ClinicIdentity';
+import { useClinic } from '../clinic/ClinicContext';
 
 export interface PrescriptionPrintViewProps {
   visit: Visit;
@@ -11,6 +13,7 @@ export const PrescriptionPrintView: React.FC<PrescriptionPrintViewProps> = ({
   visit,
   onClose,
 }) => {
+  const { profile } = useClinic();
   const handlePrint = () => {
     window.print();
   };
@@ -46,24 +49,12 @@ export const PrescriptionPrintView: React.FC<PrescriptionPrintViewProps> = ({
           <div className="flex items-start justify-between border-b-2 border-clinic-navy pb-5">
             <div className="text-right">
               <h2 className="text-xl font-black text-clinic-navy">
-                {visit.doctorName}
+                {visit.approvedByName || visit.doctorName}
               </h2>
-              <p className="text-xs font-bold text-clinic-teal mt-0.5">
-                دكتوراه الأمراض الباطنية — استشاري الكبد والجهاز الهضمي
-              </p>
-              <p className="text-[11px] text-slate-500 mt-0.5">
-                أستاذ بكلية الطب جامعة الزقازيق
-              </p>
+              {(visit.approvedBySpecialty || visit.doctorSpecialty) && <p className="text-xs font-bold text-clinic-teal mt-0.5">{visit.approvedBySpecialty || visit.doctorSpecialty}</p>}
             </div>
             <div className="text-left flex flex-col items-end">
-              <img
-                src="/brand/logo-full-horizontal.jpg"
-                alt="CLINICXIA"
-                className="h-10 object-contain"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
-              />
+              <ClinicIdentity size="sm" showClinicName />
               <span className="text-[10px] text-slate-400 font-mono mt-1">
                 Medical Prescription Form
               </span>
@@ -79,7 +70,7 @@ export const PrescriptionPrintView: React.FC<PrescriptionPrintViewProps> = ({
             <div>
               <span className="text-slate-400 block text-[10px]">السن / النوع:</span>
               <span>
-                {visit.patientAge || '32'} سنة ({visit.patientGender === 'female' ? 'أنثى' : 'ذكر'})
+                {visit.patientAge ?? '—'} سنة ({visit.patientGender === 'female' ? 'أنثى' : 'ذكر'})
               </span>
             </div>
             <div>
@@ -143,9 +134,7 @@ export const PrescriptionPrintView: React.FC<PrescriptionPrintViewProps> = ({
               <p className="font-bold text-clinic-navy">
                 موعد الإعادة والمتابعة: {visit.examination?.followUpDate || 'حسب الحاجة أو بعد أسبوعين'}
               </p>
-              <p className="text-[10px] text-slate-400 mt-1">
-                عيادة الباطنة والكبد • للاستفسارات والطوارئ: 01096402629
-              </p>
+              <p className="mt-1 text-[10px] leading-5 text-slate-500">{[profile?.address, profile?.phoneNumbers.join(' • '), profile?.workingHours].filter(Boolean).join(' • ')}</p>
             </div>
             <div className="text-center">
               <div className="w-32 border-b border-slate-400 mb-1" />

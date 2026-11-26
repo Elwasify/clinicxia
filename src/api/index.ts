@@ -1,6 +1,8 @@
 import { apiClient } from './client';
 import {
   AuthResponse,
+  ClinicProfile,
+  ClinicProfileInput,
   CreatePatientInput,
   DashboardSummary,
   Doctor,
@@ -34,6 +36,31 @@ export const authApi = {
 
 export const doctorsApi = {
   list: () => apiClient<Doctor[]>('/doctors'),
+};
+
+export const clinicApi = {
+  getProfile: () => apiClient<ClinicProfile>('/clinic/profile'),
+
+  createProfile: (data: ClinicProfileInput) =>
+    apiClient<ClinicProfile>('/clinic/profile', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateProfile: (data: ClinicProfileInput) =>
+    apiClient<ClinicProfile>('/clinic/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  uploadLogo: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient<{ logoUrl: string }>('/clinic/profile/logo', {
+      method: 'POST',
+      body: formData,
+    });
+  },
 };
 
 export const dashboardApi = {
