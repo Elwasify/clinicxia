@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { Badge } from '../components/ui/Badge';
 import { PatientAlertsBanner } from '../features/patients/PatientAlertsBanner';
@@ -45,10 +44,6 @@ describe('CLINICXIA Core Component & Domain Logic Tests', () => {
     const stateAfterLogin = useAuthStore.getState();
     expect(stateAfterLogin.isAuthenticated).toBe(true);
     expect(stateAfterLogin.user?.role).toBe('DOCTOR');
-
-    auth.switchUser('RECEPTIONIST');
-    const stateAfterSwitch = useAuthStore.getState();
-    expect(stateAfterSwitch.user?.role).toBe('RECEPTIONIST');
 
     auth.logout();
     const stateAfterLogout = useAuthStore.getState();

@@ -50,3 +50,19 @@ This document records the architectural and design decisions made during the ref
   2. `BrowserSpeechProvider`: Client-side Web Speech API fallback for offline or development environments.
 - Keyboard shortcut `F2` toggles dictation for the currently active field.
 - Transcription text is inserted at the user's cursor position without auto-approving or silently modifying the draft.
+
+---
+
+## 7. Role-Based Entry And Shared Demo Data
+- The authenticated user returned by `/auth/login` controls route access and the landing destination. A requested role in the login URL is only a visual hint; it never changes the session role.
+- The authentication store starts signed out. Login/logout and identity changes clear cached server state, and the mock API issues a per-session token and checks role access on each protected request.
+- `VITE_DEMO_MODE=true` only reveals the quick-demo controls and administrator reset action. Demo sign-in still calls the regular login endpoint.
+- A single fabricated seed in `src/api/mocks/data.ts` supplies users, doctors, patients, visits, and activity to the mock API. Its names and phone numbers are synthetic and the interface identifies the demo data.
+- Cross-device queue synchronization uses the shared visit endpoint through `useLiveQueue()` polling. Dashboard totals and activity are derived by the API layer from those same records.
+
+## 8. Welcome Experience And Dashboard Data
+- The welcome page takes its navy/teal palette and Clinicxia identity from the project presentation, while focusing the hero visual on the actual clinic management product rather than consumer medical marketing.
+- The hero preview reuses aggregate values from `/public/summary`; it contains no patient-specific information. Authenticated dashboards read `/dashboard/summary` for counts, seven-day visit totals, and recorded activity.
+- Cairo, JetBrains Mono, and Material Symbols are bundled locally so the application renders without external font requests.
+- Navigation only exposes operational destinations backed by current API data: the doctor workspace, reception queue and patient registration, patient records, and administrator read-only directories. Appointment booking, laboratory/imaging orders, finance, permission editing, and generic reports remain out of the interface until their data and API operations exist.
+- Doctor examination mode uses the existing visit endpoint for the journey, examination draft, approval, medical history, prescription, and addendum. The examination form retains unsaved-change protection and a visible save/approval action.
