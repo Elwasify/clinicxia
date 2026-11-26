@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
   ArrowDown, ArrowLeft, ArrowUpLeft, ClipboardCheck, ClipboardPlus, FileHeart,
-  Menu, ShieldCheck, Stethoscope, UsersRound, X,
+  ShieldCheck, Stethoscope, UsersRound,
 } from 'lucide-react';
 import { dashboardApi } from '../api';
 import { ClinicIdentity } from '../components/ui/ClinicIdentity';
@@ -19,13 +18,6 @@ const workflow = [
   { title: 'استقبال منظّم', description: 'تسجيل الملف والزيارة في الطابور من قاعدة موحدة.', icon: UsersRound },
   { title: 'رعاية مترابطة', description: 'يرى الطبيب حالة المريض وتنبيهاته وتاريخه الطبي.', icon: FileHeart },
   { title: 'توثيق آمن', description: 'حفظ المسودة واعتماد الكشف وتحديث سجل الزيارة.', icon: ClipboardCheck },
-];
-
-const landingLinks = [
-  { href: '#top', label: 'الرئيسية' },
-  { href: '#workspaces', label: 'فريق العيادة' },
-  { href: '#services', label: 'خدمات المنصة' },
-  { href: '#journey', label: 'رحلة المريض' },
 ];
 
 function Count({ value, loading }: { value?: number; loading: boolean }) {
@@ -70,49 +62,23 @@ function HeroImage() {
 
 export function WelcomePage() {
   const { profile } = useClinic();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['public-clinic-summary'],
     queryFn: dashboardApi.getPublicSummary,
     retry: 0,
   });
 
-  useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMobileMenuOpen(false);
-    };
-    document.addEventListener('keydown', closeOnEscape);
-    return () => document.removeEventListener('keydown', closeOnEscape);
-  }, []);
-
   return <main id="top" dir="rtl" className="min-h-screen overflow-hidden bg-white text-right text-slate-800">
     <header className="sticky top-0 z-30 border-b border-slate-100 bg-white/95 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-8">
         <a href="#top" aria-label="CLINICXIA - الرئيسية" className="flex shrink-0 items-center gap-3">
-          <ClinicIdentity size="md" showSubtitle={false} clinicNameClassName="hidden sm:inline" />
+          <ClinicIdentity variant="icon-only" size="md" showSubtitle={false} showClinicName={false} className="sm:hidden" />
+          <ClinicIdentity size="md" showSubtitle={false} clinicNameClassName="hidden sm:inline" className="hidden sm:flex" />
         </a>
-        <nav aria-label="القائمة الرئيسية" className="hidden items-center gap-7 lg:flex">
-          {landingLinks.map(({ href, label }, index) => <a key={href} href={href} aria-current={index === 0 ? 'page' : undefined} className={`py-2 text-sm font-semibold transition hover:text-clinic-teal ${index === 0 ? 'border-b-2 border-clinic-teal font-bold text-clinic-navy' : 'text-slate-500'}`}>{label}</a>)}
-        </nav>
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            aria-label={mobileMenuOpen ? 'إغلاق قائمة الموقع' : 'فتح قائمة الموقع'}
-            aria-expanded={mobileMenuOpen}
-            aria-controls="mobile-site-navigation"
-            onClick={() => setMobileMenuOpen((open) => !open)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-clinic-navy transition hover:border-clinic-teal lg:hidden"
-          >
-            {mobileMenuOpen ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
-          </button>
-          <Link to="/login" className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-clinic-navy px-3 py-2.5 text-xs font-black text-clinic-navy transition hover:bg-clinic-navy hover:text-white sm:px-5 sm:text-sm">
-            تسجيل الدخول <ArrowLeft size={15} aria-hidden="true" />
-          </Link>
-        </div>
+        <Link to="/login" className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-clinic-navy px-3 py-2.5 text-xs font-black text-clinic-navy transition hover:bg-clinic-navy hover:text-white sm:px-5 sm:text-sm">
+          تسجيل الدخول <ArrowLeft size={15} aria-hidden="true" />
+        </Link>
       </div>
-      {mobileMenuOpen && <nav id="mobile-site-navigation" aria-label="القائمة الرئيسية" className="absolute inset-x-0 top-full border-t border-slate-100 bg-white p-3 shadow-lg lg:hidden">
-        {landingLinks.map(({ href, label }, index) => <a key={href} href={href} aria-current={index === 0 ? 'page' : undefined} onClick={() => setMobileMenuOpen(false)} className={`block rounded-xl px-4 py-3 text-sm transition ${index === 0 ? 'font-black text-clinic-navy' : 'font-semibold text-slate-600 hover:bg-slate-50 hover:text-clinic-teal'}`}>{label}</a>)}
-      </nav>}
     </header>
 
     <section aria-labelledby="welcome-title" className="relative mx-auto grid max-w-7xl items-center gap-2 px-4 pb-9 pt-5 sm:px-8 sm:pb-14 sm:pt-10 lg:min-h-[600px] lg:grid-cols-[1.05fr_.95fr] lg:gap-0 lg:pb-14 lg:pt-8">
@@ -145,7 +111,7 @@ export function WelcomePage() {
       </div>
     </section>
 
-    <section id="services" aria-label="مزايا المنصة" className="mx-auto max-w-7xl px-4 pb-10 sm:px-8 sm:pb-16">
+    <section aria-label="مزايا المنصة" className="mx-auto max-w-7xl px-4 pb-10 sm:px-8 sm:pb-16">
       <div className="grid overflow-hidden rounded-3xl border border-cyan-100 bg-[#f2f7ff] sm:grid-cols-3">
         {workflow.map(({ title, description, icon: Icon }, index) => <article key={title} className={`flex items-start gap-4 px-5 py-5 sm:px-6 sm:py-7 ${index ? 'border-t border-slate-200 sm:border-t-0 sm:border-e' : ''}`}>
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-clinic-teal shadow-sm"><Icon size={22} aria-hidden="true" /></span>
@@ -154,7 +120,7 @@ export function WelcomePage() {
       </div>
     </section>
 
-    <section id="journey" className="mx-auto max-w-7xl scroll-mt-24 px-4 pb-11 sm:px-8 sm:pb-16">
+    <section className="mx-auto max-w-7xl px-4 pb-11 sm:px-8 sm:pb-16">
       <div className="flex flex-col gap-2 text-center">
         <p className="text-[10px] font-black uppercase tracking-[.22em] text-clinic-teal">رحلة مترابطة</p>
         <h2 className="text-xl font-black text-clinic-navy sm:text-2xl">كل خطوة تكمل ما بعدها</h2>

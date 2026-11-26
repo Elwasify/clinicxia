@@ -67,7 +67,8 @@ export function Header({ focusMode = false }: HeaderProps) {
       <div className="mx-auto max-w-screen-2xl px-3 sm:px-6 lg:px-8">
         <div className={`flex items-center justify-between gap-3 ${focusMode ? 'h-12' : 'h-16'}`}>
           <div className="flex min-w-0 items-center gap-3">
-            <ClinicIdentity size={focusMode ? 'sm' : 'md'} showClinicName={!focusMode} clinicNameClassName="hidden sm:inline" />
+            <ClinicIdentity variant="icon-only" size={focusMode ? 'sm' : 'md'} showClinicName={false} className="sm:hidden" />
+            <ClinicIdentity size={focusMode ? 'sm' : 'md'} showClinicName={!focusMode} clinicNameClassName="hidden sm:inline" className="hidden sm:flex" />
             {!focusMode && <span className="hidden h-8 w-px bg-slate-200 sm:block" />}
             {!focusMode && <p className="hidden text-[10px] text-slate-500 sm:block">نظام إدارة العيادات</p>}
             {focusMode && <span className="text-xs font-bold text-clinic-teal">وضع الكشف</span>}

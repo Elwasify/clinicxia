@@ -38,6 +38,16 @@ async function expectNoSidebar(page: Page) {
   await expect(page.locator('aside, [data-side-drawer]')).toHaveCount(0);
 }
 
+async function expectHeaderFits(page: Page) {
+  const contentFits = await page.locator('header a:visible, header button:visible').evaluateAll((elements) =>
+    elements.every((element) => {
+      const bounds = element.getBoundingClientRect();
+      return bounds.left >= 0 && bounds.right <= window.innerWidth;
+    })
+  );
+  expect(contentFits).toBe(true);
+}
+
 test('welcome page routes all roles and every displayed navigation link opens a working screen', async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
@@ -46,6 +56,7 @@ test('welcome page routes all roles and every displayed navigation link opens a 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'إدارة أذكى.. رعاية طبية أفضل.' })).toBeVisible();
   await expect(page.getByRole('img', { name: 'طبيب داخل عيادة، صورة توضيحية' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'القائمة الرئيسية' })).toHaveCount(0);
   await expectNoSidebar(page);
   await expect(page.getByText(demoSeed.clinicProfile.name, { exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'دخول الطبيب' }).click();
@@ -100,33 +111,29 @@ test('landing and authenticated navigation work at mobile widths', async ({ page
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto('/');
   await expect(page.getByRole('img', { name: 'طبيب داخل عيادة، صورة توضيحية' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'القائمة الرئيسية' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'فتح قائمة الموقع' })).toHaveCount(0);
+  const imageLoads = await page.getByRole('img', { name: 'طبيب داخل عيادة، صورة توضيحية' }).evaluate((image) => (image as HTMLImageElement).naturalWidth > 0);
+  expect(imageLoads).toBe(true);
 
-  const landingSections = [
-    { label: 'الرئيسية', target: '#top' },
-    { label: 'فريق العيادة', target: '#workspaces' },
-    { label: 'خدمات المنصة', target: '#services' },
-    { label: 'رحلة المريض', target: '#journey' },
-  ];
-  for (const { label, target } of landingSections) {
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    await page.getByRole('button', { name: 'فتح قائمة الموقع' }).click();
-    const mobileNavigation = page.getByRole('navigation', { name: 'القائمة الرئيسية' });
-    await mobileNavigation.getByRole('link', { name: label, exact: true }).click();
-    await expect(page).toHaveURL(new RegExp(`${target.replace('#', '\\#')}$`));
-    await expect(page.locator(target)).toBeInViewport();
-  }
-
-  for (const width of [360, 390]) {
+  for (const width of [320, 360, 390]) {
     await page.setViewportSize({ width, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expectHeaderFits(page);
   }
 
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.getByRole('link', { name: 'تعرّف على مساحات العمل' }).click();
+  await expect(page).toHaveURL(/#workspaces$/);
+  await expect(page.locator('#workspaces')).toBeInViewport();
   await page.locator('header').getByRole('link', { name: 'تسجيل الدخول' }).click();
   await loginAs(page, 'DOCTOR');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await expectHeaderFits(page);
   await page.getByRole('button', { name: 'فتح قائمة التنقل' }).click();
   const appNavigation = page.getByRole('navigation', { name: 'التنقل الرئيسي' });
   await expect(appNavigation.getByRole('link', { name: 'غرفة الكشف' })).toBeVisible();
+  await expectHeaderFits(page);
   await appNavigation.getByRole('link', { name: 'غرفة الكشف' }).click();
   await expect(page).toHaveURL(/\/examination$/);
   await expect(page.getByRole('heading', { name: profiles.DOCTOR.heading })).toBeVisible();
