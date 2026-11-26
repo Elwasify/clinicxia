@@ -22,11 +22,8 @@ export const DoctorDashboard: React.FC = () => {
     refetchInterval: 4000,
   });
 
-  // Current patient in consultation
   const currentConsultation = visits.find((v) => v.status === 'in_consultation');
-  // Waiting list for this doctor
   const waitingVisits = visits.filter((v) => v.status === 'waiting');
-  // Completed visits
   const completedVisits = visits.filter((v) => v.status === 'completed');
 
   const handleStartExam = async (visit: Visit) => {
@@ -43,10 +40,7 @@ export const DoctorDashboard: React.FC = () => {
       <ExaminationForm
         visit={activeVisit}
         patientHistory={patientPastVisits}
-        onBack={() => {
-          setActiveVisit(null);
-          refetch();
-        }}
+        onBack={() => { setActiveVisit(null); refetch(); }}
         onVisitUpdated={() => {
           refetch().then((res) => {
             const updated = res.data?.find((v) => v.id === activeVisit.id);
@@ -59,190 +53,211 @@ export const DoctorDashboard: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 text-right">
-      {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-clinic-navy">
-            غرفة الكشف الطبي — {user?.fullName}
-          </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            متابعة الحالات واستقبال المرضى وتسجيل الفحوصات الطبية المعتمدة
-          </p>
-        </div>
+        {/* Page header */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+              <h1 className="text-2xl font-black text-clinic-navy sm:text-3xl">
+                غرفة الكشف الطبي
+              </h1>
+              <p className="mt-1 text-sm text-slate-500">
+                متابعة الحالات واستقبال المرضى وتسجيل الفحوصات الطبية — {user?.fullName}
+              </p>
+          </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-slate-700 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-xs">
-            الحالات في الانتظار بالخارج: <strong className="text-amber-600 font-mono text-sm">{waitingVisits.length}</strong>
-          </span>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <LoadingSkeleton rows={4} height="h-20" />
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Spotlight Card: Current Patient inside clinic room */}
-          <div className="lg:col-span-1 flex flex-col gap-4">
-            <div className="bg-gradient-to-br from-clinic-navy to-clinic-teal text-white p-6 rounded-3xl shadow-md flex flex-col justify-between min-h-[280px]">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-[11px] font-bold uppercase tracking-wider bg-white/20 text-white px-3 py-1 rounded-full backdrop-blur-xs">
-                    الحالة الحالية بغرفة الكشف
-                  </span>
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                </div>
-
-                {currentConsultation ? (
-                  <div>
-                    <span className="font-mono text-3xl font-black block mb-1">
-                      دور {currentConsultation.queueNumber}
-                    </span>
-                    <h3 className="text-xl font-bold">{currentConsultation.patientName}</h3>
-                    <p className="text-xs text-white/80 font-mono mt-1">
-                      كود: {currentConsultation.patientCode} • السن: {currentConsultation.patientAge || '32'} سنة
-                    </p>
-
-                    {currentConsultation.drugAllergies.length > 0 && (
-                      <div className="mt-4 bg-red-600 text-white text-xs font-bold p-2.5 rounded-xl flex items-center gap-2 shadow-xs">
-                        <span className="material-symbols-outlined text-lg">warning</span>
-                        <span>تحذير حساسية: {currentConsultation.drugAllergies.join(', ')}</span>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="py-8 text-center text-white/80 text-xs">
-                    لا يوجد مريض داخل غرفة الكشف حالياً. اختر مريضاً من قائمة الانتظار للبدء.
-                  </div>
-                )}
+            <div className="flex shrink-0 items-center gap-3">
+              <div className="flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5">
+                <span className="material-symbols-outlined text-amber-500 text-base">hourglass_top</span>
+                <span className="text-xs font-bold text-amber-800">
+                  في الانتظار:{' '}
+                  <span className="font-mono text-base">{waitingVisits.length}</span>
+                </span>
               </div>
-
-              {currentConsultation ? (
-                <button
-                  type="button"
-                  onClick={() => handleStartExam(currentConsultation)}
-                  className="w-full py-3 px-4 rounded-xl bg-white text-clinic-navy hover:bg-slate-100 font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer mt-4"
-                >
-                  <span className="material-symbols-outlined text-base">clinical_notes</span>
-                  <span>فتح شاشة الكشف والروشتة</span>
-                </button>
-              ) : waitingVisits[0] ? (
-                <button
-                  type="button"
-                  onClick={() => handleStartExam(waitingVisits[0])}
-                  className="w-full py-3 px-4 rounded-xl bg-clinic-teal hover:bg-clinic-teal-light text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer mt-4"
-                >
-                  <span className="material-symbols-outlined text-base">login</span>
-                  <span>إدخال الدور التالي ({waitingVisits[0].patientName})</span>
-                </button>
-              ) : null}
             </div>
           </div>
 
-          {/* Waiting & Finished Lists */}
-          <div className="lg:col-span-2 flex flex-col gap-6">
-            {/* Waiting List */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
-              <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-amber-600 text-xl">
-                    hourglass_top
-                  </span>
-                  <h3 className="text-sm font-bold text-clinic-navy">
-                    قائمة الانتظار الحالية ({waitingVisits.length})
-                  </h3>
-                </div>
-              </div>
+          {isLoading ? (
+            <LoadingSkeleton rows={4} height="h-20" />
+          ) : (
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                          {/* Current patient spotlight */}
+                          <div className="flex flex-col gap-4 lg:col-span-1">
+                            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-clinic-navy via-[#0a3a6e] to-clinic-teal p-6 text-white shadow-lg min-h-[300px] flex flex-col justify-between">
+                              {/* Background decoration */}
+                              <div className="absolute -top-10 -left-10 h-40 w-40 rounded-full bg-white/5" />
+                              <div className="absolute -bottom-8 -right-8 h-32 w-32 rounded-full bg-white/5" />
 
-              {waitingVisits.length === 0 ? (
-                <div className="p-8">
-                  <EmptyState
-                    icon="check_circle"
-                    title="قائمة الانتظار فارغة"
-                    description="تم الانتهاء من جميع الحالات أو لم يحضر مرضى جدد بعد."
-                  />
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-100">
-                  {waitingVisits.map((v) => (
+                              <div className="relative">
+                                <div className="mb-5 flex items-center justify-between">
+                                  <span className="rounded-full bg-white/15 px-3 py-1 text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm">
+                                    الحالة الحالية
+                                  </span>
+                                  <span className={`h-2.5 w-2.5 rounded-full ${currentConsultation ? 'bg-emerald-400 animate-ping' : 'bg-white/30'}`} />
+                                </div>
+
+                                {currentConsultation ? (
+                                  <div>
+                                      <span className="font-mono text-4xl font-black block mb-2 leading-none">
+                                        دور {currentConsultation.queueNumber}
+                                      </span>
+                                        <h3 className="text-xl font-bold leading-tight">{currentConsultation.patientName}</h3>
+                                        <p className="mt-2 text-xs font-mono text-white/70">
+                                          كود: {currentConsultation.patientCode} &nbsp;•&nbsp; السن: {currentConsultation.patientAge || '—'} سنة
+                                        </p>
+
+                                        {currentConsultation.drugAllergies.length > 0 && (
+                                            <div className="mt-4 flex items-center gap-2 rounded-xl bg-red-500/90 p-3 text-xs font-bold shadow-sm">
+                                              <span className="material-symbols-outlined text-base">warning</span>
+                                              <span>تحذير حساسية: {currentConsultation.drugAllergies.join(', ')}</span>
+                                            </div>
+                    )}
+                                          </div>
+                                        ) : (
+                                          <div className="py-10 text-center">
+                                            <span className="material-symbols-outlined text-5xl text-white/30 block mb-3">person_off</span>
+                                            <p className="text-sm text-white/60 leading-6">
+                                              لا يوجد مريض داخل غرفة الكشف حالياً
+                                            </p>
+                                            {waitingVisits.length > 0 && (
+                                              <p className="mt-1 text-xs text-white/40">
+                                                يوجد {waitingVisits.length} في الانتظار
+                                              </p>
+                                            )}
+                                          </div>
+                )}
+                                        </div>
+
+                                        <div className="relative mt-4">
+                                          {currentConsultation ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleStartExam(currentConsultation)}
+                                              className="w-full rounded-2xl bg-white px-4 py-3 text-clinic-navy font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors shadow-sm cursor-pointer"
+                                            >
+                                              <span className="material-symbols-outlined text-base">clinical_notes</span>
+                                              <span>فتح شاشة الكشف والروشتة</span>
+                                            </button>
+                                          ) : waitingVisits[0] ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleStartExam(waitingVisits[0])}
+                                              className="w-full rounded-2xl bg-clinic-teal px-4 py-3 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-clinic-teal-light transition-colors cursor-pointer"
+                                            >
+                                              <span className="material-symbols-outlined text-base">login</span>
+                                              <span>إدخال ({waitingVisits[0].patientName})</span>
+                                            </button>
+                                          ) : null}
+                                        </div>
+                                      </div>
+                                  </div>
+
+                                      {/* Waiting + Completed lists */}
+                                      <div className="flex flex-col gap-6 lg:col-span-2">
+                                        {/* Waiting list */}
+                                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
+                                          <div className="flex items-center justify-between border-b border-slate-100 p-4">
+                                            <div className="flex items-center gap-2">
+                                              <span className="material-symbols-outlined text-amber-500 text-xl">hourglass_top</span>
+                                              <h3 className="text-sm font-bold text-clinic-navy">
+                                                قائمة الانتظار
+                                              </h3>
+                                              <span className="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-black text-amber-700">
+                                                {waitingVisits.length}
+                                              </span>
+                                            </div>
+                                          </div>
+
+                                          {waitingVisits.length === 0 ? (
+                                            <div className="p-8">
+                                              <EmptyState
+                                                icon="check_circle"
+                                                title="قائمة الانتظار فارغة"
+                                                description="تم الانتهاء من جميع الحالات أو لم يحضر مرضى جدد بعد."
+                                              />
+                                            </div>
+                                          ) : (
+                                            <div className="divide-y divide-slate-100">
+                                              {waitingVisits.map((v) => (
                     <div
                       key={v.id}
-                      className="p-4 flex items-center justify-between hover:bg-slate-50/70 transition-colors text-xs"
+                      className="flex flex-col gap-3 p-4 transition-colors hover:bg-slate-50/70 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="w-9 h-9 rounded-xl bg-slate-100 text-clinic-teal font-bold font-mono flex items-center justify-center text-sm border border-slate-200">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-teal-100 bg-teal-50 font-mono text-sm font-black text-clinic-teal">
                           {v.queueNumber}
-                        </span>
+                        </div>
                         <div>
-                          <p className="font-bold text-sm text-slate-900">{v.patientName}</p>
-                          <p className="text-[11px] text-slate-500 font-mono mt-0.5">
-                            {v.patientCode} • الحضور: {v.arrivalTime}
+                          <p className="text-sm font-bold text-slate-900">{v.patientName}</p>
+                          <p className="mt-0.5 text-[11px] text-slate-500 font-mono">
+                            {v.patientCode} &nbsp;•&nbsp; الحضور: {v.arrivalTime}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 self-stretch sm:self-auto">
                         {v.drugAllergies.length > 0 && (
-                          <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
-                            حساسية دواء!
+                          <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">
+                            <span className="material-symbols-outlined text-[11px]">warning</span>
+                            حساسية!
                           </span>
                         )}
                         <Button
                           variant="teal"
                           size="sm"
                           onClick={() => handleStartExam(v)}
+                          className="flex-1 sm:flex-none"
                         >
                           بدء الكشف
                         </Button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
 
-            {/* Completed Visits List */}
-            {completedVisits.length > 0 && (
-              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-emerald-600 text-lg">
-                      task_alt
-                    </span>
-                    <span>الحالات المكتملة اليوم ({completedVisits.length})</span>
-                  </h3>
-                </div>
-                <div className="divide-y divide-slate-100">
-                  {completedVisits.map((v) => (
-                    <div
-                      key={v.id}
-                      className="p-3.5 flex items-center justify-between hover:bg-slate-50/60 text-xs"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono font-bold text-emerald-700">
-                          دور {v.queueNumber}
-                        </span>
-                        <div>
-                          <span className="font-bold text-slate-800">{v.patientName}</span>
-                          <span className="text-slate-400 font-normal ms-2">
-                            التشخيص: {v.examination?.diagnosis || '—'}
-                          </span>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setActiveVisit(v)}
-                      >
-                        معاينة السجل
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                                        {/* Completed list */}
+                                        {completedVisits.length > 0 && (
+                                              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
+                                                <div className="flex items-center gap-2 border-b border-slate-100 p-4">
+                                                  <span className="material-symbols-outlined text-emerald-500 text-xl">task_alt</span>
+                                                  <h3 className="text-sm font-bold text-clinic-navy">الحالات المكتملة اليوم</h3>
+                                                  <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-black text-emerald-700">
+                                                    {completedVisits.length}
+                                                  </span>
+                                                </div>
+                                                <div className="divide-y divide-slate-100">
+                                                  {completedVisits.map((v) => (
+                                                    <div
+                                                      key={v.id}
+                                                      className="flex flex-col gap-3 p-4 text-xs hover:bg-slate-50/60 transition-colors sm:flex-row sm:items-center sm:justify-between"
+                                                    >
+                                                      <div className="flex items-center gap-3">
+                                                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-50 font-mono text-xs font-black text-emerald-700">
+                                                          {v.queueNumber}
+                                                        </div>
+                                                        <div>
+                                                          <p className="font-bold text-sm text-slate-800">{v.patientName}</p>
+                                                          <p className="mt-0.5 text-slate-500">
+                                                            التشخيص: {v.examination?.diagnosis || <span className="text-slate-300">—</span>}
+                                                          </p>
+                                                        </div>
+                                                      </div>
+                                                      <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => setActiveVisit(v)}
+                                                        className="w-full sm:w-auto shrink-0"
+                                                      >
+                                                        معاينة السجل
+                                                      </Button>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              </div>
             )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                      );
 };

@@ -6,7 +6,7 @@
   --color-clinic-teal: #0f7c82;
   --color-clinic-teal-light: #14b8a6;
   --color-clinic-teal-soft: #f0fdfa;
-  --color-clinic-bg: #f6f8fb;
+  --color-clinic-bg: #f1f5f9;
   --color-clinic-surface: #ffffff;
   --color-clinic-text: #1f2937;
   --color-clinic-muted: #64748b;
@@ -28,7 +28,17 @@
     --clinic-text: #1f2937;
   }
 
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    min-height: 100%;
+    scroll-behavior: smooth;
+  }
+
   body {
+    min-height: 100vh;
     background-color: var(--clinic-bg);
     color: var(--clinic-text);
     font-family: "Cairo", system-ui, sans-serif;
@@ -36,6 +46,11 @@
     text-align: right;
     margin: 0;
     padding: 0;
+    overflow-x: hidden;
+  }
+
+  #root {
+    min-height: 100vh;
   }
 }
 
@@ -64,24 +79,55 @@
 
 /* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 9999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Smooth focus rings */
+:focus-visible {
+  outline: 2px solid #0f7c82;
+  outline-offset: 2px;
+}
+
+/* Table improvements */
+table {
+  border-spacing: 0;
+}
+
 /* Audio wave animation */
 @keyframes soundwave {
-  0%, 100% { height: 6px; }
-  50% { height: 28px; }
+
+  0%,
+  100% {
+    height: 6px;
+  }
+
+  50% {
+    height: 28px;
+  }
 }
 
 .soundwave-bar {

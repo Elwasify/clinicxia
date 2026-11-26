@@ -37,15 +37,52 @@ export const ReceptionDashboard: React.FC = () => {
     }
   };
 
+  const kpiCards = [
+    {
+      value: counters.totalToday,
+      label: 'إجمالي الحالات',
+      icon: 'groups',
+      color: 'text-clinic-teal',
+      bg: 'bg-teal-50',
+      border: 'border-teal-100',
+    },
+    {
+      value: counters.waiting,
+      label: 'في الانتظار',
+      icon: 'hourglass_top',
+      color: 'text-amber-600',
+      bg: 'bg-amber-50',
+      border: 'border-amber-100',
+    },
+    {
+      value: counters.inConsultation,
+      label: 'داخل الكشف',
+      icon: 'stethoscope',
+      color: 'text-clinic-navy',
+      bg: 'bg-slate-50',
+      border: 'border-slate-200',
+    },
+    {
+      value: counters.completed,
+      label: 'مكتمل',
+      icon: 'task_alt',
+      color: 'text-emerald-600',
+      bg: 'bg-emerald-50',
+      border: 'border-emerald-100',
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-6 text-right">
-      {/* Top Action Bar */}
-      <div className="flex items-center justify-between">
+      {/* Page header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-clinic-navy">طابور اليوم</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            إدارة حركة المرضى والدخول لغرف الكشف لحظياً
-          </p>
+            <h1 className="text-2xl font-black text-clinic-navy sm:text-3xl">
+              طابور اليوم
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">
+              إدارة حركة المرضى والدخول لغرف الكشف لحظياً
+            </p>
         </div>
 
         <Button
@@ -53,245 +90,256 @@ export const ReceptionDashboard: React.FC = () => {
           size="md"
           leftIcon={<span className="material-symbols-outlined text-lg">add</span>}
           onClick={() => setShowNewVisitModal(true)}
-          className="rounded-xl shadow-sm px-5"
+          className="w-full rounded-2xl px-6 shadow-sm sm:w-auto"
         >
-          مريض جديد +
+          مريض جديد
         </Button>
       </div>
 
-      {/* 4 KPI Metrics matching design guide */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Total Today */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col items-center justify-center text-center">
-          <span className="text-3xl font-black text-clinic-teal font-mono leading-none mb-1.5">
-            {counters.totalToday}
-          </span>
-          <span className="text-xs font-semibold text-slate-500">إجمالي الحالات</span>
+        {/* KPI cards */}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+          {kpiCards.map((card) => (
+            <div
+              key={card.label}
+              className={`flex items-center gap-4 rounded-2xl border ${card.border} ${card.bg} p-4 transition-all`}
+            >
+              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ${card.color}`}>
+                <span className="material-symbols-outlined text-[22px]">{card.icon}</span>
+              </div>
+              <div>
+                <p className={`font-mono text-2xl font-black leading-none ${card.color}`}>
+                  {card.value}
+                </p>
+                <p className="mt-1 text-xs font-semibold text-slate-600">{card.label}</p>
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* Waiting */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col items-center justify-center text-center">
-          <span className="text-3xl font-black text-amber-600 font-mono leading-none mb-1.5">
-            {counters.waiting}
-          </span>
-          <span className="text-xs font-semibold text-slate-500">في الانتظار</span>
-        </div>
-
-        {/* In Consultation */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col items-center justify-center text-center">
-          <span className="text-3xl font-black text-clinic-navy font-mono leading-none mb-1.5">
-            {counters.inConsultation}
-          </span>
-          <span className="text-xs font-semibold text-slate-500">داخل الكشف</span>
-        </div>
-
-        {/* Follow up / Completed */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col items-center justify-center text-center">
-          <span className="text-3xl font-black text-emerald-600 font-mono leading-none mb-1.5">
-            {counters.completed}
-          </span>
-          <span className="text-xs font-semibold text-slate-500">متابعة / مكتمل</span>
-        </div>
-      </div>
-
-      {/* Search Bar */}
-      <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs flex items-center">
-        <div className="relative w-full flex items-center">
-          <span className="absolute start-3 material-symbols-outlined text-slate-400 text-lg pointer-events-none">
-            search
-          </span>
-          <input
-            type="text"
-            placeholder="بحث باسم أو رقم مريض..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full ps-10 pe-4 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none"
-          />
-        </div>
-      </div>
-
-      {/* Queue Table matching the table style in the guide */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
-        {isLoading ? (
-          <div className="p-6">
-            <LoadingSkeleton rows={5} height="h-14" />
-          </div>
-        ) : filteredVisits.length === 0 ? (
-          <div className="p-8">
-            <EmptyState
-              icon="search_off"
-              title="لا توجد أدوار مسجلة حالياً"
-              description="أضف مريضاً جديداً إلى الطابور بالضغط على زر مريض جديد أعلاه."
-              actionLabel="تسجيل مريض جديد"
-              onAction={() => setShowNewVisitModal(true)}
+          {/* Search */}
+          <div className="relative">
+            <span className="absolute top-1/2 -translate-y-1/2 end-4 material-symbols-outlined text-slate-400 text-lg pointer-events-none">
+              search
+            </span>
+            <input
+              type="text"
+              placeholder="بحث باسم أو رقم مريض أو كود..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 pe-11 py-3.5 text-sm text-slate-800 placeholder:text-slate-400 shadow-xs focus:outline-none focus:border-clinic-teal/60 focus:ring-2 focus:ring-clinic-teal/10 transition-all"
             />
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-right border-collapse">
-              <thead>
-                <tr className="bg-slate-50/80 text-[11px] font-bold text-slate-500 border-b border-slate-200">
-                  <th className="p-3.5 pe-4 text-center w-12">#</th>
-                  <th className="p-3.5 text-center">كود الدور</th>
-                  <th className="p-3.5">كود المريض</th>
-                  <th className="p-3.5">الاسم</th>
-                  <th className="p-3.5 text-center">نوع الزيارة</th>
-                  <th className="p-3.5 text-center">الحالة</th>
-                  <th className="p-3.5 text-center ps-4">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-                {filteredVisits.map((visit, index) => {
-                  return (
-                    <tr
-                      key={visit.id}
-                      className="hover:bg-slate-50/80 transition-colors h-14"
-                    >
-                      {/* Index */}
-                      <td className="p-3.5 pe-4 text-center font-mono text-slate-400 font-semibold">
-                        {index + 1}
-                      </td>
 
-                      {/* Queue Turn Code */}
-                      <td className="p-3.5 text-center">
-                        <span className="font-mono font-bold text-clinic-teal text-sm bg-teal-50 px-2.5 py-0.5 rounded-lg border border-teal-100">
-                          {visit.queueNumber}
-                        </span>
-                      </td>
-
-                      {/* Patient Code */}
-                      <td className="p-3.5">
-                        <span className="font-mono font-bold text-clinic-navy bg-slate-100 px-2 py-0.5 rounded text-[11px] ltr-text">
-                          {visit.patientCode}
-                        </span>
-                      </td>
-
-                      {/* Patient Name */}
-                      <td className="p-3.5 font-bold text-slate-900 text-sm">
-                        {visit.patientName}
-                      </td>
-
-                      {/* Visit Type */}
-                      <td className="p-3.5 text-center">
-                        <Badge variant={visit.visitType}>
-                          {visit.visitType === 'new'
-                            ? 'كشف جديد'
-                            : visit.visitType === 'follow_up'
-                            ? 'إعادة كشف'
-                            : 'استشارة'}
-                        </Badge>
-                      </td>
-
-                      {/* Status Badge */}
-                      <td className="p-3.5 text-center">
-                        <Badge variant={visit.status}>
-                          {visit.status === 'waiting'
-                            ? 'في الانتظار'
-                            : visit.status === 'in_consultation'
-                            ? 'داخل الكشف'
-                            : visit.status === 'completed'
-                            ? 'مكتمل'
-                            : 'لم يحضر'}
-                        </Badge>
-                      </td>
-
-                      {/* Action buttons (إرسال / دخول) */}
-                      <td className="p-3.5 text-center ps-4">
-                        <div className="flex items-center justify-center gap-1.5">
-                          {visit.status === 'waiting' && (
-                            <button
-                              type="button"
-                              onClick={() => handleStatusChange(visit, 'in_consultation')}
-                              className="px-4 py-1.5 rounded-lg bg-clinic-teal hover:bg-clinic-teal-light text-white font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
-                            >
-                              <span className="material-symbols-outlined text-sm">
-                                send
-                              </span>
-                              <span>إرسال</span>
-                            </button>
-                          )}
-
-                          {visit.status === 'in_consultation' && (
-                            <button
-                              type="button"
-                              onClick={() => handleStatusChange(visit, 'completed')}
-                              className="px-4 py-1.5 rounded-lg bg-clinic-navy hover:bg-clinic-navy-dark text-white font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
-                            >
-                              <span className="material-symbols-outlined text-sm">
-                                check
-                              </span>
-                              <span>دخول</span>
-                            </button>
-                          )}
-
-                          {visit.status !== 'cancelled' && visit.status !== 'completed' && (
-                            <button
-                              type="button"
-                              onClick={() => handleStatusChange(visit, 'cancelled')}
-                              title="إلغاء / لم يحضر"
-                              className="w-7 h-7 rounded-lg border border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 flex items-center justify-center transition-colors cursor-pointer"
-                            >
-                              <span className="material-symbols-outlined text-base">
-                                close
-                              </span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* New Visit Registration Modal */}
-      <NewVisitModal
-        isOpen={showNewVisitModal}
-        onClose={() => setShowNewVisitModal(false)}
-        onSubmit={async (data) => {
-          await createVisit(data);
-        }}
-      />
-
-      {/* Cancel Confirmation Dialog */}
-      <Modal
-        isOpen={!!cancelVisit}
-        onClose={() => setCancelVisit(null)}
-        title="تأكيد إلغاء الكشف"
-        description="هل أنت متأكد من تسجيل المريض كـ (لم يحضر)؟"
-        maxWidth="sm"
-        footer={
+            {/* Queue table */}
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
+              {isLoading ? (
+                <div className="p-6">
+                  <LoadingSkeleton rows={5} height="h-14" />
+                </div>
+              ) : filteredVisits.length === 0 ? (
+                  <div className="p-10">
+                    <EmptyState
+                      icon="search_off"
+                      title="لا توجد أدوار مسجلة حالياً"
+                      description="أضف مريضاً جديداً إلى الطابور بالضغط على زر مريض جديد أعلاه."
+                      actionLabel="تسجيل مريض جديد"
+                      onAction={() => setShowNewVisitModal(true)}
+                    />
+                  </div>
+                  ) : (
           <>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setCancelVisit(null)}
-            >
-              تراجع
-            </Button>
-            <Button
-              type="button"
-              variant="danger"
-              size="sm"
-              onClick={confirmCancel}
-            >
-              تأكيد الإلغاء
-            </Button>
-          </>
+                    {/* Mobile cards */}
+                    <div className="grid gap-3 p-3 sm:hidden">
+                      {filteredVisits.map((visit, index) => (
+                        <div
+                          key={visit.id}
+                          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs"
+                        >
+                          <div className="mb-3 flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-black text-slate-900">{visit.patientName}</p>
+                              <p className="mt-0.5 text-[11px] text-slate-500">ترتيب اليوم #{index + 1}</p>
+                            </div>
+                            <span className="rounded-xl border border-teal-100 bg-teal-50 px-3 py-1 font-mono text-sm font-black text-clinic-teal">
+                              {visit.queueNumber}
+                            </span>
+                          </div>
+
+                              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                <div className="rounded-xl bg-slate-50 px-3 py-2">
+                                  <span className="block text-slate-400">كود المريض</span>
+                                  <span className="mt-0.5 inline-block font-mono font-bold text-clinic-navy">{visit.patientCode}</span>
+                                </div>
+                                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                                    <span className="block text-slate-400">نوع الزيارة</span>
+                                    <div className="mt-1">
+                                      <Badge variant={visit.visitType}>
+                                        {visit.visitType === 'new' ? 'كشف جديد' : visit.visitType === 'follow_up' ? 'إعادة كشف' : 'استشارة'}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                    <div className="col-span-2 rounded-xl bg-slate-50 px-3 py-2">
+                                      <span className="block text-slate-400">الحالة</span>
+                                      <div className="mt-1">
+                                        <Badge variant={visit.status}>
+                                          {visit.status === 'waiting' ? 'في الانتظار' : visit.status === 'in_consultation' ? 'داخل الكشف' : visit.status === 'completed' ? 'مكتمل' : 'لم يحضر'}
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                      {visit.status === 'waiting' && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleStatusChange(visit, 'in_consultation')}
+                                          className="flex-1 rounded-xl bg-clinic-teal px-4 py-2.5 text-xs font-bold text-white hover:bg-clinic-teal-light transition-colors"
+                                        >
+                                          إرسال لغرفة الكشف
+                                        </button>
+                                      )}
+                                      {visit.status === 'in_consultation' && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleStatusChange(visit, 'completed')}
+                                          className="flex-1 rounded-xl bg-clinic-navy px-4 py-2.5 text-xs font-bold text-white hover:bg-clinic-navy-dark transition-colors"
+                                        >
+                                          إنهاء الحالة
+                                        </button>
+                                      )}
+                                      {visit.status !== 'cancelled' && visit.status !== 'completed' && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleStatusChange(visit, 'cancelled')}
+                                          className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-xs font-bold text-red-700 hover:bg-red-100 transition-colors"
+                                        >
+                                          لم يحضر
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+              ))}
+                                </div>
+
+                                {/* Desktop table */}
+                                <div className="hidden overflow-x-auto sm:block">
+                                  <table className="w-full text-right border-collapse">
+                                    <thead>
+                                        <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                          <th className="w-12 p-4 text-center">#</th>
+                                          <th className="p-4 text-center">الدور</th>
+                                          <th className="p-4">كود المريض</th>
+                                          <th className="p-4">الاسم</th>
+                                          <th className="p-4 text-center">نوع الزيارة</th>
+                                          <th className="p-4 text-center">الحالة</th>
+                                          <th className="p-4 text-center">إجراءات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+                                            {filteredVisits.map((visit, index) => (
+                                              <tr
+                                                key={visit.id}
+                                                className="h-[60px] transition-colors hover:bg-slate-50/80"
+                                              >
+                                                <td className="p-4 text-center font-mono text-slate-400 font-semibold">{index + 1}</td>
+
+                                                <td className="p-4 text-center">
+                                                  <span className="inline-flex items-center rounded-lg border border-teal-100 bg-teal-50 px-2.5 py-0.5 font-mono text-sm font-black text-clinic-teal">
+                                                    {visit.queueNumber}
+                                                  </span>
+                                                </td>
+
+                                                <td className="p-4">
+                                                  <span className="font-mono text-[11px] font-bold text-clinic-navy bg-slate-100 px-2 py-0.5 rounded ltr-text">
+                                                    {visit.patientCode}
+                                                  </span>
+                                                </td>
+
+                                                <td className="p-4 font-bold text-sm text-slate-900">{visit.patientName}</td>
+
+                                                <td className="p-4 text-center">
+                                                  <Badge variant={visit.visitType}>
+                                                    {visit.visitType === 'new' ? 'كشف جديد' : visit.visitType === 'follow_up' ? 'إعادة كشف' : 'استشارة'}
+                                                  </Badge>
+                                                </td>
+
+                                                <td className="p-4 text-center">
+                                                  <Badge variant={visit.status}>
+                                                    {visit.status === 'waiting' ? 'في الانتظار' : visit.status === 'in_consultation' ? 'داخل الكشف' : visit.status === 'completed' ? 'مكتمل' : 'لم يحضر'}
+                                                  </Badge>
+                                                </td>
+
+                                            <td className="p-4 text-center">
+                                              <div className="flex items-center justify-center gap-1.5">
+                                                {visit.status === 'waiting' && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleStatusChange(visit, 'in_consultation')}
+                                                    className="inline-flex items-center gap-1.5 rounded-xl bg-clinic-teal px-4 py-2 text-xs font-bold text-white hover:bg-clinic-teal-light transition-colors shadow-xs"
+                                                  >
+                                                    <span className="material-symbols-outlined text-sm">send</span>
+                                                    إرسال
+                                                  </button>
+                                                )}
+                                                {visit.status === 'in_consultation' && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleStatusChange(visit, 'completed')}
+                                                    className="inline-flex items-center gap-1.5 rounded-xl bg-clinic-navy px-4 py-2 text-xs font-bold text-white hover:bg-clinic-navy-dark transition-colors shadow-xs"
+                                                  >
+                                                    <span className="material-symbols-outlined text-sm">check</span>
+                                                    إنهاء
+                                                  </button>
+                                                )}
+                                                {visit.status !== 'cancelled' && visit.status !== 'completed' && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleStatusChange(visit, 'cancelled')}
+                                                    title="إلغاء / لم يحضر"
+                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors"
+                                                  >
+                                                    <span className="material-symbols-outlined text-base">close</span>
+                                                  </button>
+                                                )}
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </>
+        )}
+                            </div>
+
+                            <NewVisitModal
+                              isOpen={showNewVisitModal}
+                              onClose={() => setShowNewVisitModal(false)}
+                              onSubmit={async (data) => { await createVisit(data); }}
+                            />
+
+                            <Modal
+                              isOpen={!!cancelVisit}
+                              onClose={() => setCancelVisit(null)}
+                              title="تأكيد إلغاء الكشف"
+                              description="هل أنت متأكد من تسجيل المريض كـ (لم يحضر)؟"
+                              maxWidth="sm"
+                              footer={
+                                <>
+                                    <Button type="button" variant="outline" size="sm" onClick={() => setCancelVisit(null)}>
+                                      تراجع
+                                    </Button>
+                                      <Button type="button" variant="danger" size="sm" onClick={confirmCancel}>
+                                        تأكيد الإلغاء
+                                      </Button>
+                                    </>
         }
       >
-        <div className="text-xs text-slate-600 space-y-2">
-          <p>
-            المريض:{' '}
-            <strong className="text-clinic-navy">{cancelVisit?.patientName}</strong>
-          </p>
-          <p>الدور: {cancelVisit?.queueNumber}</p>
-        </div>
-      </Modal>
-    </div>
-  );
+                                    <div className="text-xs text-slate-600 space-y-2">
+                                      <p>المريض: <strong className="text-clinic-navy">{cancelVisit?.patientName}</strong></p>
+                                      <p>الدور: {cancelVisit?.queueNumber}</p>
+                                    </div>
+                                  </Modal>
+                                </div>
+                              );
 };

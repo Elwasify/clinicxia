@@ -1,14 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../../features/auth/useAuthStore';
 import { ChangePasswordModal } from '../../features/auth/ChangePasswordModal';
 import { setConnectivityListener } from '../../api/client';
+import { ClinicxiaLogo } from '../ui/ClinicxiaLogo';
+import { Navigation } from './Navigation';
 
 export const Header: React.FC = () => {
-  const { user } = useAuthStore();
+  const { user, logout, switchUser } = useAuthStore();
   const [isOnline, setIsOnline] = useState(true);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showChangePass, setShowChangePass] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const isDoctor = user?.role === 'DOCTOR';
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setConnectivityListener((online) => setIsOnline(online));
@@ -16,12 +21,24 @@ export const Header: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const formattedDate = currentTime.toLocaleDateString('ar-EG', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+  useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+          setShowUserMenu(false);
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+  useEffect(() => {
+    if (showMobileMenu) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [showMobileMenu]);
 
   const formattedTime = currentTime.toLocaleTimeString('ar-EG', {
     hour: '2-digit',
@@ -29,104 +46,182 @@ export const Header: React.FC = () => {
     hour12: true,
   });
 
+  const formattedDate = currentTime.toLocaleDateString('ar-EG', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+
+  const userInitial = user?.fullName?.charAt(0) || 'م';
+  const roleBadge = isDoctor ? 'طبيب' : 'استقبال';
+
   return (
     <>
-      <header className="w-full bg-white border-b border-slate-200/90 shadow-xs z-20 sticky top-0 no-print h-16 flex items-center px-4 sm:px-6 justify-between">
-        {/* Right side: CLINICXIA Emblem & Clinic Title */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2.5">
-            <img
-              src="/brand/emblem-for-light-bg.png"
-              alt="CLINICXIA"
-              className="w-8 h-8 object-contain shrink-0 drop-shadow-xs"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/brand/app-icon.jpg';
-              }}
-            />
-            <div className="flex flex-col text-right">
-              <h1 className="text-xs sm:text-sm font-bold text-clinic-navy leading-tight">
-                عيادة أ.د. عفيفي فهمي عفيفي أحمد
-              </h1>
-              <p className="text-[10px] sm:text-[11px] font-medium text-slate-500">
-                دكتوراه الأمراض الباطنية — استشاري الكبد والجهاز الهضمي
-              </p>
-            </div>
+                <header className="sticky top-0 z-40 no-print">
+                  <div className="border-b border-slate-200/80 bg-white/95 backdrop-blur-xl shadow-sm">
+                    <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8">
+                      <div className="flex h-16 items-center justify-between gap-4">
+
+                            {/* Right: Logo + clinic name */}
+                            <div className="flex items-center gap-3 min-w-0 shrink-0">
+                              <ClinicxiaLogo size="md" showSubtitle={false} />
+                              <div className="hidden sm:block h-6 w-px bg-slate-200" />
+                              <div className="hidden sm:block min-w-0">
+                                <p className="text-sm font-black text-clinic-navy leading-tight">
+                                  عيادة أ.د. عفيفي فهمي
+                                </p>
+                                <p className="text-[10px] text-slate-500 leading-tight">نظام إدارة العيادة</p>
+                              </div>
+                            </div>
+
+                          {/* Center: Desktop Navigation */}
+                          <div className="hidden md:flex flex-1 justify-center px-4">
+                            <Navigation />
+                          </div>
+
+                            {/* Left: actions */}
+                            <div className="flex items-center gap-2 shrink-0">
+
+                              {/* Clock */}
+                              <div className="hidden lg:flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-1.5">
+                                <span className="material-symbols-outlined text-[16px] text-clinic-teal">schedule</span>
+                                <div className="text-right">
+                                  <p className="font-mono text-xs font-black text-clinic-navy leading-none">{formattedTime}</p>
+                                  <p className="text-[10px] text-slate-500 leading-none mt-0.5">{formattedDate}</p>
+                                </div>
+                              </div>
+
+                                {/* Online status */}
+                                <div className={`hidden sm:inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${isOnline
+                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                    : 'border-red-200 bg-red-50 text-red-700'
+                                  }`}>
+                                  <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                                  <span>{isOnline ? 'متصل' : 'غير متصل'}</span>
+                                </div>
+
+                                  {/* User menu */}
+                                  <div className="relative" ref={userMenuRef}>
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowUserMenu((p) => !p)}
+                                      className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-1.5 shadow-xs transition-all hover:border-clinic-teal/60 hover:shadow-sm"
+                                    >
+                                      <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-clinic-teal to-clinic-navy text-white flex items-center justify-center font-bold text-xs shrink-0">
+                                        {userInitial}
+                                      </div>
+                                      <div className="hidden sm:block text-right">
+                                        <p className="text-xs font-bold text-slate-800 leading-none">{user?.fullName}</p>
+                                        <p className="text-[10px] text-slate-500 leading-none mt-0.5">{roleBadge}</p>
+                                      </div>
+                                      <span className="material-symbols-outlined text-[16px] text-slate-400 hidden sm:block">expand_more</span>
+                                    </button>
+
+                                          {showUserMenu && (
+                                            <div className="absolute top-11 start-0 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl z-50">
+                                              <div className="px-3 py-2.5 border-b border-slate-100 mb-1">
+                                                <p className="text-xs font-black text-clinic-navy">{user?.fullName}</p>
+                                                <p className="text-[11px] text-slate-500 mt-0.5">{roleBadge}</p>
+                                              </div>
+
+                                                <button
+                                                  type="button"
+                                                  onClick={() => { switchUser(isDoctor ? 'RECEPTIONIST' : 'DOCTOR'); setShowUserMenu(false); }}
+                                                  className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors text-right"
+                                                >
+                                                  <span className="material-symbols-outlined text-base text-clinic-teal">swap_horiz</span>
+                                                  <span>التبديل إلى {isDoctor ? 'الاستقبال' : 'الطبيب'}</span>
+                                                  <span className="ms-auto text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold">تجربة</span>
+                                                </button>
+
+                                                <button
+                                                  type="button"
+                                                  onClick={() => { setShowChangePass(true); setShowUserMenu(false); }}
+                                                  className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors text-right"
+                                                >
+                                                  <span className="material-symbols-outlined text-base text-slate-500">lock_reset</span>
+                                                  تغيير كلمة المرور
+                                                </button>
+
+                                                <div className="border-t border-slate-100 mt-1 pt-1">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => { logout(); setShowUserMenu(false); }}
+                                                    className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors text-right"
+                                                  >
+                                                    <span className="material-symbols-outlined text-base">logout</span>
+                                                    تسجيل الخروج
+                                                  </button>
+                                                </div>
+                                              </div>
+                  )}
+                                            </div>
+
+                {/* Mobile hamburger */}
+                                          <button
+                                            type="button"
+                                            aria-label="فتح القائمة"
+                                            onClick={() => setShowMobileMenu((p) => !p)}
+                                            className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-colors hover:border-clinic-teal"
+                                          >
+                                            <span className="material-symbols-outlined text-[20px]">
+                                              {showMobileMenu ? 'close' : 'menu'}
+                                            </span>
+                                          </button>
+                                        </div>
+                                      </div>
           </div>
-        </div>
+                                </div>
+                              </header>
 
-        {/* Center: Live Sync Status & Clock */}
-        <div className="hidden md:flex items-center gap-3">
-          <span
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border transition-colors ${
-              isOnline
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'bg-red-50 text-red-700 border-red-200'
-            }`}
-          >
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'
-              }`}
-            />
-            {isOnline ? 'متزامن لحظياً' : 'غير متصل بالخادم'}
-          </span>
+                                    {/* Mobile Menu */}
+                                    {showMobileMenu && (
+                                      <>
+                                        <div
+                                          className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm md:hidden"
+                                          onClick={() => setShowMobileMenu(false)}
+                                        />
+                                        <div className="fixed top-16 inset-x-0 z-40 md:hidden border-b border-slate-200 bg-white shadow-2xl">
+                                          <div className="px-4 py-5 space-y-4">
+                                            {/* Clock mobile */}
+                                            <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                                              <span className="material-symbols-outlined text-clinic-teal">schedule</span>
+                                              <div>
+                                                <p className="font-mono text-base font-black text-clinic-navy">{formattedTime}</p>
+                                                <p className="text-xs text-slate-500">{formattedDate}</p>
+                                              </div>
+                                            </div>
 
-          <span className="text-slate-300 font-bold">•</span>
-          <span className="text-xs text-slate-500 font-medium">{formattedDate}</span>
-          <span className="text-slate-300 font-bold">•</span>
-          <span className="text-sm font-bold text-clinic-navy font-mono">
-            {formattedTime}
-          </span>
-        </div>
+                                            <Navigation mode="mobile" onNavigate={() => setShowMobileMenu(false)} />
 
-        {/* Left side: Notifications & Change Password */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Notifications */}
-          <div className="relative">
-            <button
-              type="button"
-              aria-label="الإشعارات"
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="relative w-9 h-9 rounded-xl border border-slate-200 hover:border-clinic-teal bg-slate-50 hover:bg-white text-slate-600 hover:text-clinic-navy flex items-center justify-center transition-colors cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-lg">notifications</span>
-              <span className="absolute top-1.5 end-1.5 w-2 h-2 rounded-full bg-red-600 ring-2 ring-white" />
-            </button>
+                                            <div className="border-t border-slate-100 pt-4 flex flex-col gap-2">
+                                              <button
+                                                type="button"
+                                                onClick={() => { switchUser(isDoctor ? 'RECEPTIONIST' : 'DOCTOR'); setShowMobileMenu(false); }}
+                                                className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700"
+                                              >
+                                                <span className="material-symbols-outlined text-clinic-teal">swap_horiz</span>
+                                                <span>التبديل إلى {isDoctor ? 'الاستقبال' : 'الطبيب'}</span>
+                                                <span className="ms-auto text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-bold">تجربة</span>
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => { logout(); setShowMobileMenu(false); }}
+                                                className="flex items-center gap-3 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"
+                                              >
+                                                <span className="material-symbols-outlined">logout</span>
+                                                تسجيل الخروج
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                  </>
+      )}
 
-            {showNotifications && (
-              <div className="absolute top-11 start-0 bg-white border border-slate-200 shadow-xl rounded-2xl p-3 z-50 text-right w-72 animate-in zoom-in-95 duration-150">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-2">
-                  <span className="font-bold text-clinic-navy text-xs">التنبيهات الفورية</span>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                    مباشر
-                  </span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-teal-50 border border-teal-100 text-xs text-slate-700">
-                  <p className="font-bold text-clinic-navy text-[11px]">جاهزية غرفة الكشف</p>
-                  <p className="text-[11px] text-slate-600 mt-0.5">
-                    العيادة جاهزة لاستقبال الدور 02 (أيمن كمال الشاذلي).
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Change Password Button */}
-          <button
-            type="button"
-            onClick={() => setShowChangePass(true)}
-            title="تغيير كلمة المرور"
-            className="w-9 h-9 rounded-xl border border-slate-200 hover:border-clinic-teal bg-slate-50 hover:bg-white text-slate-600 hover:text-clinic-navy flex items-center justify-center transition-colors cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-lg">lock_reset</span>
-          </button>
-        </div>
-      </header>
-
-      <ChangePasswordModal
-        isOpen={showChangePass}
-        onClose={() => setShowChangePass(false)}
-      />
-    </>
-  );
+                                <ChangePasswordModal
+                                  isOpen={showChangePass}
+                                  onClose={() => setShowChangePass(false)}
+                                />
+                              </>
+                              );
 };

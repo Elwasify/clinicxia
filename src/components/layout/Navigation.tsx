@@ -2,67 +2,110 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../features/auth/useAuthStore';
 
-export const Navigation: React.FC = () => {
+interface NavigationProps {
+  mode?: 'desktop' | 'mobile';
+  onNavigate?: () => void;
+}
+
+export const Navigation: React.FC<NavigationProps> = ({
+  mode = 'desktop',
+  onNavigate,
+}) => {
   const { user } = useAuthStore();
   const isDoctor = user?.role === 'DOCTOR';
 
-  const baseTabClass =
-    'flex items-center gap-2 px-5 py-2 rounded-lg font-semibold text-sm transition-all select-none cursor-pointer';
-  const activeTabClass = 'bg-clinic-navy text-white shadow-sm';
-  const inactiveTabClass = 'text-slate-700 hover:text-clinic-teal hover:bg-slate-100';
+  const navItems = [
+    {
+      to: '/',
+      label: isDoctor ? 'غرفة الكشف' : 'لوحة الاستقبال',
+      icon: isDoctor ? 'stethoscope' : 'space_dashboard',
+      description: isDoctor
+          ? 'متابعة قائمة الانتظار والحالة الحالية'
+          : 'إدارة الطابور الحي وحركة المرضى',
+    },
+    {
+      to: '/daily-record',
+      label: 'سجل اليوم',
+      icon: 'event_note',
+      description: 'مراجعة تسلسل اليوم والحالات المسجلة',
+    },
+    {
+      to: '/patients',
+      label: 'قاعدة المرضى',
+      icon: 'group',
+      description: 'الوصول السريع لملفات المرضى وتحديث البيانات',
+    },
+  ];
+
+  if (mode === 'desktop') {
+    return (
+      <nav className="flex items-center gap-1" aria-label="التنقل الرئيسي">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === '/'}
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              `inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-all duration-200 select-none ${isActive
+                ? 'bg-clinic-navy text-white shadow-sm'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-clinic-navy'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <span
+                  className={`material-symbols-outlined text-[18px] ${isActive ? 'text-white' : 'text-clinic-teal'
+                    }`}
+                >
+                  {item.icon}
+                </span>
+                <span>{item.label}</span>
+              </>
+            )}
+          </NavLink>
+        ))}
+      </nav>
+    );
+  }
 
   return (
-    <nav className="w-full bg-white border-b border-slate-200 shadow-xs sticky top-[88px] z-20 no-print">
-      <div className="max-w-[1560px] mx-auto px-4 sm:px-6 h-[54px] flex items-center justify-between">
-        <div className="inline-flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200 gap-1 shadow-inner">
-          {/* Main Dashboard: live queue for reception or doctor dashboard */}
+      <nav className="flex flex-col gap-2" aria-label="التنقل الرئيسي">
+        {navItems.map((item) => (
           <NavLink
-            to="/"
-            end
+            key={item.to}
+            to={item.to}
+            end={item.to === '/'}
+            onClick={onNavigate}
             className={({ isActive }) =>
-              `${baseTabClass} ${isActive ? activeTabClass : inactiveTabClass}`
+              `flex items-center gap-3 rounded-2xl border px-4 py-3.5 transition-all duration-200 ${isActive
+                ? 'border-clinic-navy bg-clinic-navy text-white shadow-sm'
+                : 'border-slate-200 bg-white text-slate-700 hover:border-clinic-teal/40 hover:bg-teal-50/40'
+              }`
             }
           >
-            <span className="material-symbols-outlined text-lg">
-              {isDoctor ? 'stethoscope' : 'dashboard'}
+            {({ isActive }) => (
+              <>
+                <span
+                      }`}
+              >
+                {item.icon}
+              </span>
+          <div className="flex flex-col text-right min-w-0">
+            <span className="text-sm font-bold leading-tight">{item.label}</span>
+            <span
+                  className={`text-[11px] leading-5 ${isActive ? 'text-white/75' : 'text-slate-500'
+                }`}
+            >
+              {item.description}
             </span>
-            <span>{isDoctor ? 'عيادتي والكشوفات' : 'الرئيسية (الطابور الحي)'}</span>
-          </NavLink>
-
-          {/* Daily Record */}
-          <NavLink
-            to="/daily-record"
-            className={({ isActive }) =>
-              `${baseTabClass} ${isActive ? activeTabClass : inactiveTabClass}`
-            }
-          >
-            <span className="material-symbols-outlined text-lg">event_note</span>
-            <span>سجل اليوم</span>
-          </NavLink>
-
-          {/* Patients Database */}
-          <NavLink
-            to="/patients"
-            className={({ isActive }) =>
-              `${baseTabClass} ${isActive ? activeTabClass : inactiveTabClass}`
-            }
-          >
-            <span className="material-symbols-outlined text-lg">person_search</span>
-            <span>المرضى</span>
-            <span className="text-[11px] opacity-75 mr-1 border-r border-slate-300 pr-2">
-              قاعدة البيانات
-            </span>
-          </NavLink>
-        </div>
-
-        <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-500">
-          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span>الدور الحالي في العيادة:</span>
-          <span className="font-mono font-bold text-clinic-navy bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-            01
-          </span>
-        </div>
-      </div>
-    </nav>
+          </div>
+            </>
+          )}
+    </NavLink>
+  ))
+}
+    </nav >
   );
 };
