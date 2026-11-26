@@ -2,14 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Visit, ExaminationData, PrescriptionItem } from '../../types';
 import { visitsApi } from '../../api';
 import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
-import { PatientAlertsBanner } from '../patients/PatientAlertsBanner';
-import { PrescriptionEditor } from '../prescriptions/PrescriptionEditor';
 import { PrescriptionPrintView } from '../prescriptions/PrescriptionPrintView';
 import { AddendumModal } from './AddendumModal';
 import { VisitHistoryTimeline } from './VisitHistoryTimeline';
-import { VoiceMicButton } from '../voice/VoiceMicButton';
 import { useVoiceDictation } from '../voice/useVoiceDictation';
 import { useToastStore } from '../../components/ui/Toast';
 
@@ -29,94 +25,30 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
   const isApproved = visit.examinationStatus === 'approved';
   const addToast = useToastStore((s) => s.addToast);
 
+  // Active Tab: الكشف الحالي | التاريخ الطبي | الأدوية السابقة | التحاليل والأشعة
+  const [activeTab, setActiveTab] = useState<'current' | 'history' | 'meds' | 'labs'>('current');
+
   // Form Fields
   const [chiefComplaint, setChiefComplaint] = useState(visit.examination?.chiefComplaint || '');
-  const [clinicalExamination, setClinicalExamination] = useState(visit.examination?.clinicalExamination || '');
   const [diagnosis, setDiagnosis] = useState(visit.examination?.diagnosis || '');
   const [treatmentPlan, setTreatmentPlan] = useState(visit.examination?.treatmentPlan || '');
-  const [followUpDate, setFollowUpDate] = useState(visit.examination?.followUpDate || '');
-  const [additionalNotes, setAdditionalNotes] = useState(visit.examination?.additionalNotes || '');
+  const [followUpOption, setFollowUpOption] = useState<'finished' | 'needs_tests' | 'needs_revisit'>('needs_revisit');
+  const [revisitPeriod, setRevisitPeriod] = useState('شهر');
   const [prescription, setPrescription] = useState<PrescriptionItem[]>(visit.examination?.prescription || []);
 
   // UI States
-  const [activeField, setActiveField] = useState<string>('chiefComplaint');
-  const [isSaving, setIsSaving] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showAddendumModal, setShowAddendumModal] = useState(false);
-  const [showHistoryPanel, setShowHistoryPanel] = useState(false);
-  const [selectedHistoryVisit, setSelectedHistoryVisit] = useState<Visit | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
-  // Undo history for speech insertion
-  const lastInsertedRef = useRef<{ field: string; text: string } | null>(null);
-
-  // Unsaved changes beforeunload guard
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges && !isApproved) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasUnsavedChanges, isApproved]);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
 
   // Voice text insertion handler
   const handleVoiceInsert = (text: string) => {
     if (isApproved) return;
-    lastInsertedRef.current = { field: activeField, text };
     setHasUnsavedChanges(true);
-
-    const append = (current: string) => (current ? `${current} ${text}` : text);
-
-    switch (activeField) {
-      case 'chiefComplaint':
-        setChiefComplaint((prev) => append(prev));
-        break;
-      case 'clinicalExamination':
-        setClinicalExamination((prev) => append(prev));
-        break;
-      case 'diagnosis':
-        setDiagnosis((prev) => append(prev));
-        break;
-      case 'treatmentPlan':
-        setTreatmentPlan((prev) => append(prev));
-        break;
-      case 'additionalNotes':
-        setAdditionalNotes((prev) => append(prev));
-        break;
-      default:
-        setChiefComplaint((prev) => append(prev));
-    }
-  };
-
-  const handleUndoSpeech = () => {
-    if (!lastInsertedRef.current) return;
-    const { field, text } = lastInsertedRef.current;
-    const removeLast = (current: string) => current.replace(text, '').trim();
-
-    switch (field) {
-      case 'chiefComplaint':
-        setChiefComplaint((prev) => removeLast(prev));
-        break;
-      case 'clinicalExamination':
-        setClinicalExamination((prev) => removeLast(prev));
-        break;
-      case 'diagnosis':
-        setDiagnosis((prev) => removeLast(prev));
-        break;
-      case 'treatmentPlan':
-        setTreatmentPlan((prev) => removeLast(prev));
-        break;
-      case 'additionalNotes':
-        setAdditionalNotes((prev) => removeLast(prev));
-        break;
-    }
-    lastInsertedRef.current = null;
-    addToast({ type: 'info', message: 'تم التراجع عن آخر إملاء صوتي' });
+    setDiagnosis((prev) => (prev ? `${prev} ${text}` : text));
   };
 
   const {
@@ -128,50 +60,34 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
     toggleListening,
   } = useVoiceDictation(handleVoiceInsert);
 
+  const isListening = voiceState === 'listening';
+
+  // Timer for voice dictation
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isListening) {
+      interval = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setRecordingSeconds(0);
+    }
+    return () => clearInterval(interval);
+  }, [isListening]);
+
+  const formattedTimer = `${String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:${String(
+    recordingSeconds % 60
+  ).padStart(2, '0')}`;
+
   const getFormData = (): ExaminationData => ({
     chiefComplaint,
-    clinicalExamination,
+    clinicalExamination: diagnosis,
     diagnosis,
     treatmentPlan,
-    followUpDate,
-    additionalNotes,
+    followUpDate: followUpOption === 'needs_revisit' ? revisitPeriod : undefined,
+    additionalNotes: followUpOption === 'finished' ? 'كشف منتهي' : followUpOption === 'needs_tests' ? 'يحتاج فحص وتحاليل' : `إعادة زيارة بعد ${revisitPeriod}`,
     prescription,
   });
-
-  // Explicit Save Draft
-  const handleSaveDraft = async () => {
-    if (isApproved) return;
-    setIsSaving(true);
-    try {
-      await visitsApi.saveDraft(visit.id, getFormData());
-      setHasUnsavedChanges(false);
-      addToast({
-        type: 'success',
-        title: 'تم الحفظ',
-        message: 'تم حفظ مسودة الكشف الطبي بنجاح.',
-      });
-      onVisitUpdated();
-    } catch {
-      addToast({
-        type: 'error',
-        title: 'فشل الحفظ',
-        message: 'تعذر حفظ المسودة، تم الاحتفاظ ببياناتك على الشاشة لإعادة المحاولة.',
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Debounced Autosave (every 10s if unsaved changes exist)
-  useEffect(() => {
-    if (!hasUnsavedChanges || isApproved) return;
-    const timer = setTimeout(() => {
-      visitsApi.saveDraft(visit.id, getFormData()).then(() => {
-        setHasUnsavedChanges(false);
-      });
-    }, 10000);
-    return () => clearTimeout(timer);
-  }, [hasUnsavedChanges, isApproved, chiefComplaint, clinicalExamination, diagnosis, treatmentPlan, followUpDate, additionalNotes, prescription]);
 
   // Approve & Lock
   const handleApprove = async () => {
@@ -182,8 +98,8 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
       setShowApproveConfirm(false);
       addToast({
         type: 'success',
-        title: 'تم الاعتماد والإنهاء',
-        message: 'تم قفل الكشف الطبي بنجاح وأصبح معتمداً ومتاحاً للطباعة.',
+        title: 'تم الإنهاء والاعتماد',
+        message: 'تم إنهاء الكشف وحفظ الملاحظات بنجاح.',
       });
       onVisitUpdated();
     } catch {
@@ -198,373 +114,357 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-5 text-right">
-      {/* Top Patient Header Strip */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-black text-clinic-navy">
-              كشف: {visit.patientName}
-            </h2>
-            <Badge variant={isApproved ? 'approved' : 'draft'}>
-              {isApproved ? 'كشف معتمد (مقفل)' : 'مسودة قيد التحرير'}
-            </Badge>
+    <div className="flex flex-col gap-6 text-right">
+      {/* 1. Patient Header Strip matching Doctor Dashboard in Design Board */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-clinic-teal font-black text-xl shrink-0">
+            {visit.patientName.charAt(0)}
           </div>
-          <p className="text-xs text-slate-500 font-mono mt-1">
-            كود: {visit.patientCode} • الدور: {visit.queueNumber} • السن: {visit.patientAge || '—'} سنة • وقت الحضور: {visit.arrivalTime}
-          </p>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-bold text-clinic-navy">{visit.patientName}</h2>
+              <span className="font-mono text-sm font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                {visit.patientCode}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-slate-500 mt-1 font-medium">
+              <span>{visit.patientGender === 'female' ? 'أنثى' : 'ذكر'}</span>
+              <span>•</span>
+              <span>{visit.patientAge || '32'} سنة</span>
+              <span>•</span>
+              <span className="font-mono text-slate-600">{visit.patientPhone}</span>
+            </div>
+          </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          {isApproved ? (
-            <>
-              <Button
-                variant="teal"
-                size="sm"
-                onClick={() => setShowPrintModal(true)}
-                leftIcon={<span className="material-symbols-outlined text-base">print</span>}
-              >
-                طباعة الروشتة (A4)
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAddendumModal(true)}
-                leftIcon={<span className="material-symbols-outlined text-base">post_add</span>}
-              >
-                إضافة استدراك طبي
-              </Button>
-            </>
+        {/* Allergy Warning Badge matching the design board */}
+        <div className="flex items-center gap-3">
+          {visit.drugAllergies.length > 0 ? (
+            <div className="flex items-center gap-2 bg-red-50 text-red-700 border border-red-200 px-4 py-2 rounded-xl text-xs font-bold shadow-xs">
+              <span className="material-symbols-outlined text-red-600 text-lg">warning</span>
+              <span>حساسية من {visit.drugAllergies.join('، ')}</span>
+            </div>
           ) : (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSaveDraft}
-                isLoading={isSaving}
-                leftIcon={<span className="material-symbols-outlined text-base">save</span>}
-              >
-                حفظ مسودة
-              </Button>
-              <Button
-                variant="teal"
-                size="sm"
-                onClick={() => setShowApproveConfirm(true)}
-                leftIcon={<span className="material-symbols-outlined text-base">verified</span>}
-              >
-                اعتماد وإنهاء الكشف
-              </Button>
-            </>
+            <span className="text-xs text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+              لا توجد حساسيات مسجلة
+            </span>
           )}
 
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setShowHistoryPanel(!showHistoryPanel)}
-            leftIcon={<span className="material-symbols-outlined text-base">history</span>}
-          >
-            {showHistoryPanel ? 'إخفاء السجل' : 'السجل السابق'}
-          </Button>
-
-          <Button variant="ghost" size="sm" onClick={onBack}>
-            الرجوع للطابور
+          <Button variant="outline" size="sm" onClick={onBack}>
+            الرجوع للقائمة
           </Button>
         </div>
       </div>
 
-      {/* Prominent Allergy & Chronic Warning Banner */}
-      <PatientAlertsBanner
-        allergies={visit.drugAllergies}
-        chronicDiseases={visit.chronicDiseases}
-      />
+      {/* 2. Top Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-5 rounded-2xl shadow-xs">
+        {[
+          { id: 'current', label: 'الكشف الحالي' },
+          { id: 'history', label: 'التاريخ الطبي' },
+          { id: 'meds', label: 'الأدوية السابقة' },
+          { id: 'labs', label: 'التحاليل والأشعة' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`py-3.5 px-4 font-bold text-xs border-b-2 transition-all cursor-pointer ${
+              activeTab === tab.id
+                ? 'border-clinic-teal text-clinic-teal'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      {/* Main Grid: Form + Optional Collapsible History */}
-      <div className={`grid gap-6 ${showHistoryPanel ? 'lg:grid-cols-3' : 'grid-cols-1'}`}>
-        {/* Examination Form Columns */}
-        <div className={`flex flex-col gap-5 ${showHistoryPanel ? 'lg:col-span-2' : ''}`}>
-          {/* Voice Toolbar (Only shown to doctor in edit mode) */}
-          {!isApproved && (
-            <div className="bg-white p-3.5 rounded-xl border border-teal-200/80 shadow-xs flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs">
-                <span className="material-symbols-outlined text-clinic-teal text-xl">
-                  mic
-                </span>
-                <span className="font-bold text-clinic-navy">التوثيق الصوتي الذكي:</span>
-                <span className="text-slate-500">
-                  الحقل النشط: [
-                  <strong className="text-clinic-teal">
-                    {activeField === 'chiefComplaint'
-                      ? 'الشكوى'
-                      : activeField === 'clinicalExamination'
-                      ? 'الفحص'
-                      : activeField === 'diagnosis'
-                      ? 'التشخيص'
-                      : activeField === 'treatmentPlan'
-                      ? 'العلاج'
-                      : 'ملاحظات'}
-                  </strong>
-                  ]
-                </span>
-              </div>
+      {/* Tab: History / Meds / Labs View */}
+      {activeTab !== 'current' && (
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+          <VisitHistoryTimeline visits={patientHistory} currentVisitId={visit.id} />
+        </div>
+      )}
 
-              <div className="flex items-center gap-2">
-                {lastInsertedRef.current && (
-                  <button
-                    type="button"
-                    onClick={handleUndoSpeech}
-                    className="text-xs font-semibold text-slate-500 hover:text-slate-800 underline cursor-pointer"
-                  >
-                    تراجع عن الإملاء
-                  </button>
-                )}
-                <VoiceMicButton
-                  state={voiceState}
-                  onToggle={toggleListening}
-                  language={voiceLang}
-                  onLanguageChange={setVoiceLang}
-                  errorMessage={voiceError}
-                  interimText={interimText}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Form Fields Cards */}
+      {/* 3. Main Split 2-Column Layout matching Doctor Dashboard in Design Board */}
+      {activeTab === 'current' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* Left Column: التشخيص والملاحظات مع التسجيل الصوتي */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col gap-5">
-            {/* 1. Chief Complaint */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-clinic-navy flex items-center justify-between">
-                <span>1. الشكوى الرئيسية وتاريخ المرض الحالي (Chief Complaint)</span>
-                <span className="text-[11px] text-slate-400 font-normal">كتابة حرة / إملاء</span>
-              </label>
-              <textarea
-                rows={3}
-                disabled={isApproved}
-                value={chiefComplaint}
-                onFocus={() => setActiveField('chiefComplaint')}
-                onChange={(e) => {
-                  setChiefComplaint(e.target.value);
-                  setHasUnsavedChanges(true);
-                }}
-                placeholder="أدخل وصف الشكوى وأعراض المريض بالتفصيل..."
-                className="w-full rounded-xl border border-slate-300 p-3 text-xs leading-relaxed focus-visible:outline-3 focus-visible:outline-clinic-teal disabled:bg-slate-50 disabled:text-slate-700"
-              />
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-clinic-navy flex items-center gap-2">
+                <span className="material-symbols-outlined text-clinic-teal text-lg">
+                  clinical_notes
+                </span>
+                <span>التشخيص والملاحظات</span>
+              </h3>
+              <div className="flex items-center gap-1.5 text-[11px] font-bold">
+                <button
+                  type="button"
+                  onClick={() => setVoiceLang('ar-EG')}
+                  className={`px-2 py-0.5 rounded cursor-pointer ${
+                    voiceLang === 'ar-EG'
+                      ? 'bg-clinic-navy text-white'
+                      : 'text-slate-500 hover:text-clinic-navy'
+                  }`}
+                >
+                  عربي
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVoiceLang('en-US')}
+                  className={`px-2 py-0.5 rounded cursor-pointer ${
+                    voiceLang === 'en-US'
+                      ? 'bg-clinic-navy text-white'
+                      : 'text-slate-500 hover:text-clinic-navy'
+                  }`}
+                >
+                  EN
+                </button>
+              </div>
             </div>
 
-            {/* 2. Clinical Examination */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-clinic-navy flex items-center justify-between">
-                <span>2. الفحص الإكلينيكي والعلامات الحيوية (Clinical Examination)</span>
-                <span className="text-[11px] text-slate-400 font-normal">الضغط، النبض، فحص البطن</span>
-              </label>
-              <textarea
-                rows={3}
-                disabled={isApproved}
-                value={clinicalExamination}
-                onFocus={() => setActiveField('clinicalExamination')}
-                onChange={(e) => {
-                  setClinicalExamination(e.target.value);
-                  setHasUnsavedChanges(true);
-                }}
-                placeholder="نتائج الكشف السريري والجسدي..."
-                className="w-full rounded-xl border border-slate-300 p-3 text-xs leading-relaxed focus-visible:outline-3 focus-visible:outline-clinic-teal disabled:bg-slate-50 disabled:text-slate-700"
-              />
-            </div>
+            {/* Circular Voice Dictation Area matching design board */}
+            {!isApproved && (
+              <div className="flex flex-col items-center justify-center p-6 bg-slate-50/70 rounded-2xl border border-slate-200/80 gap-3 text-center">
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className={`w-16 h-16 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-md ${
+                    isListening
+                      ? 'bg-red-600 text-white animate-pulse scale-105'
+                      : 'bg-clinic-teal hover:bg-clinic-teal-light text-white'
+                  }`}
+                  title="اضغط للتسجيل الصوتي أو استخدم اختصار F2"
+                >
+                  <span className="material-symbols-outlined text-3xl">mic</span>
+                </button>
 
-            {/* 3. Diagnosis */}
+                <div>
+                  <span className="text-xs font-bold text-slate-700 block">
+                    {isListening ? 'جاري الاستماع...' : 'اضغط للتسجيل (F2)'}
+                  </span>
+                  <span className="text-[11px] font-mono text-slate-400 mt-0.5 block">
+                    {formattedTimer}
+                  </span>
+                </div>
+
+                {/* Animated Sound Wave Graphic */}
+                <div className="flex items-center gap-1 h-8 mt-1">
+                  {Array.from({ length: 18 }).map((_, i) => (
+                    <span
+                      key={i}
+                      className={`w-1 rounded-full bg-clinic-teal transition-all ${
+                        isListening ? 'soundwave-bar' : 'h-1.5 opacity-30'
+                      }`}
+                      style={{
+                        animationDelay: `${(i % 5) * 0.15}s`,
+                      }}
+                    />
+                  ))}
+                </div>
+
+                {interimText && (
+                  <p className="text-xs text-clinic-teal italic max-w-sm font-medium">
+                    "{interimText}"
+                  </p>
+                )}
+
+                {voiceError && (
+                  <p className="text-xs text-red-600 font-bold bg-red-50 p-2 rounded-lg border border-red-200">
+                    {voiceError}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Diagnosis Input */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-clinic-navy flex items-center justify-between">
-                <span>3. التشخيص الطبي المعتمد (Diagnosis) *</span>
-                <span className="text-[11px] text-red-500 font-normal">مطلوب للاعتماد</span>
+              <label className="text-xs font-bold text-slate-700">
+                التشخيص الطبي السريري
               </label>
               <textarea
-                rows={2}
+                rows={4}
                 disabled={isApproved}
                 value={diagnosis}
-                onFocus={() => setActiveField('diagnosis')}
                 onChange={(e) => {
                   setDiagnosis(e.target.value);
                   setHasUnsavedChanges(true);
                 }}
-                placeholder="التشخيص الطبي الأولي أو النهائي..."
-                className="w-full rounded-xl border border-slate-300 p-3 text-xs font-semibold leading-relaxed focus-visible:outline-3 focus-visible:outline-clinic-teal disabled:bg-slate-50 disabled:text-slate-700"
+                placeholder="أدخل التشخيص الطبي أو تحدث عبر الميكروفون أعلاه..."
+                className="w-full rounded-xl border border-slate-300 p-3 text-xs leading-relaxed focus-visible:outline-3 focus-visible:outline-clinic-teal disabled:bg-slate-50"
               />
             </div>
+          </div>
 
-            {/* 4. Treatment Plan */}
+          {/* Right Column: خطة العلاج والروشتة */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col gap-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-clinic-navy flex items-center gap-2">
+                <span className="material-symbols-outlined text-clinic-teal text-lg">
+                  prescriptions
+                </span>
+                <span>خطة العلاج والروشتة</span>
+              </h3>
+
+              {isApproved && (
+                <button
+                  type="button"
+                  onClick={() => setShowPrintModal(true)}
+                  className="text-xs font-bold text-clinic-teal hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm">print</span>
+                  <span>طباعة الروشتة (A4)</span>
+                </button>
+              )}
+            </div>
+
+            {/* Rich text / prescription toolbar icons */}
+            <div className="flex items-center gap-1 p-1.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-600 text-xs">
+              <button type="button" className="p-1 hover:bg-slate-200 rounded" title="عريض">
+                <span className="material-symbols-outlined text-base">format_bold</span>
+              </button>
+              <button type="button" className="p-1 hover:bg-slate-200 rounded" title="مائل">
+                <span className="material-symbols-outlined text-base">format_italic</span>
+              </button>
+              <button type="button" className="p-1 hover:bg-slate-200 rounded" title="قائمة">
+                <span className="material-symbols-outlined text-base">format_list_bulleted</span>
+              </button>
+              <div className="h-4 w-px bg-slate-300 mx-1" />
+              <button type="button" className="p-1 hover:bg-slate-200 rounded" title="إدراج جدول">
+                <span className="material-symbols-outlined text-base">table_chart</span>
+              </button>
+              <button type="button" className="p-1 hover:bg-slate-200 rounded" title="أدوية جاهزة">
+                <span className="material-symbols-outlined text-base">medication</span>
+              </button>
+            </div>
+
+            {/* Treatment plan text area */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-clinic-navy">
-                4. الخطة العلاجية والتعليمات الغذائية (Treatment Plan)
-              </label>
               <textarea
-                rows={2}
+                rows={5}
                 disabled={isApproved}
                 value={treatmentPlan}
-                onFocus={() => setActiveField('treatmentPlan')}
                 onChange={(e) => {
                   setTreatmentPlan(e.target.value);
                   setHasUnsavedChanges(true);
                 }}
-                placeholder="إرشادات الحمية الغذائية، التحاليل المطلوبة، مواعيد الجرعات..."
-                className="w-full rounded-xl border border-slate-300 p-3 text-xs leading-relaxed focus-visible:outline-3 focus-visible:outline-clinic-teal disabled:bg-slate-50 disabled:text-slate-700"
+                placeholder="اكتب الأدوية الموصوفة، الجرعات، والتعليمات الطبية هنا..."
+                className="w-full rounded-xl border border-slate-300 p-3 text-xs leading-relaxed focus-visible:outline-3 focus-visible:outline-clinic-teal disabled:bg-slate-50"
               />
             </div>
 
-            {/* 5. Prescription Component */}
-            <div className="pt-2 border-t border-slate-100">
-              <PrescriptionEditor
-                items={prescription}
-                onChange={(newItems) => {
-                  setPrescription(newItems);
-                  setHasUnsavedChanges(true);
-                }}
-                isReadOnly={isApproved}
-              />
-            </div>
-
-            {/* 6. Follow-up & Additional Notes */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-clinic-navy">
-                  6. موعد الإعادة والمتابعة (Follow-up Date)
+            {/* Options at bottom matching the design board */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                  <input
+                    type="radio"
+                    name="followUpOption"
+                    checked={followUpOption === 'finished'}
+                    onChange={() => setFollowUpOption('finished')}
+                    className="accent-clinic-teal"
+                  />
+                  <span>كشف منتهي</span>
                 </label>
-                <input
-                  type="date"
-                  disabled={isApproved}
-                  value={followUpDate}
-                  onChange={(e) => {
-                    setFollowUpDate(e.target.value);
-                    setHasUnsavedChanges(true);
-                  }}
-                  className="rounded-xl border border-slate-300 p-2.5 text-xs focus-visible:outline-3 focus-visible:outline-clinic-teal disabled:bg-slate-50"
-                />
+
+                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                  <input
+                    type="radio"
+                    name="followUpOption"
+                    checked={followUpOption === 'needs_tests'}
+                    onChange={() => setFollowUpOption('needs_tests')}
+                    className="accent-clinic-teal"
+                  />
+                  <span>يحتاج فحص</span>
+                </label>
+
+                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                  <input
+                    type="radio"
+                    name="followUpOption"
+                    checked={followUpOption === 'needs_revisit'}
+                    onChange={() => setFollowUpOption('needs_revisit')}
+                    className="accent-clinic-teal"
+                  />
+                  <span>يحتاج إعادة زيارة</span>
+                </label>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-clinic-navy">
-                  7. ملاحظات إضافية وتوصيات سريرية
-                </label>
-                <input
-                  type="text"
-                  disabled={isApproved}
-                  value={additionalNotes}
-                  onFocus={() => setActiveField('additionalNotes')}
-                  onChange={(e) => {
-                    setAdditionalNotes(e.target.value);
-                    setHasUnsavedChanges(true);
-                  }}
-                  placeholder="أي ملاحظات موجهة أو احترازية..."
-                  className="rounded-xl border border-slate-300 p-2.5 text-xs focus-visible:outline-3 focus-visible:outline-clinic-teal disabled:bg-slate-50"
-                />
-              </div>
-            </div>
-
-            {/* Documented Addenda List (if any) */}
-            {visit.addenda && visit.addenda.length > 0 && (
-              <div className="mt-4 p-4 rounded-xl bg-amber-50/60 border border-amber-200 flex flex-col gap-2.5">
-                <h5 className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-amber-700 text-lg">
-                    verified
-                  </span>
-                  <span>الاستدراكات الطبية الموثقة رسمياً:</span>
-                </h5>
-                <div className="divide-y divide-amber-200/60">
-                  {visit.addenda.map((add) => (
-                    <div key={add.id} className="py-2 text-xs">
-                      <p className="text-slate-800 font-medium">{add.note}</p>
-                      <p className="text-[10px] text-slate-500 font-mono mt-0.5">
-                        بواسطة: {add.authorName} • {add.createdAt}
-                      </p>
-                    </div>
-                  ))}
+              {followUpOption === 'needs_revisit' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-slate-500">مهلة الإعادة:</span>
+                  <select
+                    value={revisitPeriod}
+                    onChange={(e) => setRevisitPeriod(e.target.value)}
+                    className="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800"
+                  >
+                    <option value="أسبوع">أسبوع</option>
+                    <option value="أسبوعين">أسبوعين</option>
+                    <option value="شهر">شهر</option>
+                    <option value="شهرين">شهرين</option>
+                  </select>
                 </div>
+              )}
+            </div>
+
+            {/* Final CTA button matching design board: إنهاء الكشف وحفظ الملاحظات ← */}
+            {!isApproved ? (
+              <button
+                type="button"
+                onClick={() => setShowApproveConfirm(true)}
+                className="w-full mt-3 py-3 px-6 rounded-xl bg-clinic-teal hover:bg-clinic-teal-light active:bg-teal-800 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+              >
+                <span>إنهاء الكشف وحفظ الملاحظات</span>
+                <span className="material-symbols-outlined text-lg rtl:rotate-180">
+                  arrow_forward
+                </span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 mt-3">
+                <Button
+                  variant="teal"
+                  size="md"
+                  onClick={() => setShowPrintModal(true)}
+                  className="flex-1"
+                  leftIcon={<span className="material-symbols-outlined text-base">print</span>}
+                >
+                  طباعة الروشتة الرسمية
+                </Button>
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={() => setShowAddendumModal(true)}
+                  leftIcon={<span className="material-symbols-outlined text-base">post_add</span>}
+                >
+                  استدراك طبي
+                </Button>
               </div>
             )}
           </div>
         </div>
+      )}
 
-        {/* Collapsible History Side Panel & Comparison View */}
-        {showHistoryPanel && (
-          <div className="flex flex-col gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col gap-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h4 className="text-xs font-bold text-clinic-navy flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-clinic-teal text-lg">
-                    history
-                  </span>
-                  <span>السجل الطبي السابق للمريض</span>
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => setShowHistoryPanel(false)}
-                  className="text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-base">close</span>
-                </button>
-              </div>
-
-              <VisitHistoryTimeline
-                visits={patientHistory}
-                currentVisitId={visit.id}
-                onSelectVisit={(v) => setSelectedHistoryVisit(v)}
-              />
-            </div>
-
-            {/* Comparison Card (Selected past visit vs current) */}
-            {selectedHistoryVisit && (
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs flex flex-col gap-2.5 animate-in fade-in duration-150">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                  <span className="font-bold text-clinic-navy">
-                    معاينة كشف سابق: {selectedHistoryVisit.examination?.updatedAt?.split('T')[0] || selectedHistoryVisit.arrivalTime}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedHistoryVisit(null)}
-                    className="text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
-                  >
-                    إغلاق
-                  </button>
-                </div>
-                <p>
-                  <strong className="text-slate-600 block">التشخيص السابق:</strong>
-                  {selectedHistoryVisit.examination?.diagnosis || '—'}
-                </p>
-                <p>
-                  <strong className="text-slate-600 block">العلاج السابق:</strong>
-                  {selectedHistoryVisit.examination?.treatmentPlan || '—'}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Approve Confirmation Modal */}
+      {/* Confirmation Modal */}
       <Modal
         isOpen={showApproveConfirm}
         onClose={() => setShowApproveConfirm(false)}
-        title="تأكيد اعتماد وإنهاء الكشف الطبي"
-        description="يرجى مراجعة التشخيص والروشتة قبل الاعتماد النهائي"
+        title="تأكيد إنهاء واعتماد الكشف"
+        description="يرجى التأكد من التشخيص والعلاج قبل الاعتماد النهائي"
         maxWidth="sm"
         footer={
           <>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowApproveConfirm(false)}
-            >
-              مواصلة التعديل
+            <Button variant="outline" size="sm" onClick={() => setShowApproveConfirm(false)}>
+              تراجع
             </Button>
             <Button
-              type="button"
               variant="teal"
               size="sm"
               onClick={handleApprove}
               isLoading={isApproving}
             >
-              تأكيد الاعتماد والقفل
+              نعم، إنهاء الكشف
             </Button>
           </>
         }
@@ -574,16 +474,15 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
             المريض: <strong className="text-clinic-navy">{visit.patientName}</strong>
           </p>
           <p>
-            التشخيص المسجل: <strong className="text-clinic-teal">{diagnosis || 'لم يسجل تشخيص'}</strong>
+            التشخيص: <strong className="text-clinic-teal">{diagnosis || 'تشخيص عام'}</strong>
           </p>
-          <p>عدد الأدوية الموصوفة: {prescription.length} أدوية</p>
-          <div className="p-3 bg-amber-50 text-amber-900 border border-amber-200 rounded-xl text-[11px]">
-            تنبيه: بعد الاعتماد، لن يمكن تعديل نص الكشف مباشرة حرصاً على مصداقية السجلات الطبية. أي تصحيح لاحق سيكون عبر استدراك موثق.
-          </div>
+          <p>
+            الحالة: <strong className="text-slate-800">{followUpOption === 'finished' ? 'كشف منتهي' : followUpOption === 'needs_tests' ? 'فحوصات مطلوبة' : `إعادة زيارة (${revisitPeriod})`}</strong>
+          </p>
         </div>
       </Modal>
 
-      {/* Prescription A4 Print Modal */}
+      {/* Prescription Print Modal */}
       {showPrintModal && (
         <PrescriptionPrintView
           visit={{

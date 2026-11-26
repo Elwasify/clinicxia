@@ -4,12 +4,17 @@
   --color-clinic-navy: #0b2545;
   --color-clinic-navy-dark: #07172c;
   --color-clinic-teal: #0f7c82;
-  --color-clinic-teal-light: #13979f;
-  --color-clinic-teal-soft: #e6f4f5;
-  --color-clinic-bg: #f7f9fc;
-  --color-clinic-text: #1e293b;
+  --color-clinic-teal-light: #14b8a6;
+  --color-clinic-teal-soft: #f0fdfa;
+  --color-clinic-bg: #f6f8fb;
+  --color-clinic-surface: #ffffff;
+  --color-clinic-text: #1f2937;
   --color-clinic-muted: #64748b;
   --color-clinic-border: #e2e8f0;
+
+  --color-clinic-alert: #dc2626;
+  --color-clinic-waiting: #d97706;
+  --color-clinic-completed: #16a34a;
 
   --font-cairo: "Cairo", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
@@ -19,8 +24,8 @@
   :root {
     --clinic-navy: #0b2545;
     --clinic-teal: #0f7c82;
-    --clinic-bg: #f7f9fc;
-    --clinic-text: #1e293b;
+    --clinic-bg: #f6f8fb;
+    --clinic-text: #1f2937;
   }
 
   body {
@@ -29,6 +34,8 @@
     font-family: "Cairo", system-ui, sans-serif;
     direction: rtl;
     text-align: right;
+    margin: 0;
+    padding: 0;
   }
 }
 
@@ -50,8 +57,35 @@
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
-  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Audio wave animation */
+@keyframes soundwave {
+  0%, 100% { height: 6px; }
+  50% { height: 28px; }
+}
+
+.soundwave-bar {
+  animation: soundwave 1.2s ease-in-out infinite;
 }
 
 /* Print styles */

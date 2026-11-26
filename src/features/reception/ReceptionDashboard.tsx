@@ -12,6 +12,15 @@ export const ReceptionDashboard: React.FC = () => {
   const { visits, counters, isLoading, updateStatus, createVisit } = useLiveQueue();
   const [showNewVisitModal, setShowNewVisitModal] = useState(false);
   const [cancelVisit, setCancelVisit] = useState<Visit | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredVisits = visits.filter(
+    (v) =>
+      !searchQuery.trim() ||
+      v.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      v.patientCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      v.patientPhone.includes(searchQuery)
+  );
 
   const handleStatusChange = async (visit: Visit, newStatus: QueueStatus) => {
     if (newStatus === 'cancelled') {
@@ -29,110 +38,91 @@ export const ReceptionDashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Top Banner & Action */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+    <div className="flex flex-col gap-6 text-right">
+      {/* Top Action Bar */}
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-black text-clinic-navy">
-            طابور العيادة الحي وإدارة الاستقبال
-          </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            تسجيل وتنظيم أدوار المرضى لحظياً ومتابعة حركة الدخول إلى غرفة الكشف
+          <h2 className="text-2xl font-bold text-clinic-navy">طابور اليوم</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            إدارة حركة المرضى والدخول لغرف الكشف لحظياً
           </p>
         </div>
 
         <Button
           variant="teal"
           size="md"
-          leftIcon={<span className="material-symbols-outlined text-lg">person_add</span>}
+          leftIcon={<span className="material-symbols-outlined text-lg">add</span>}
           onClick={() => setShowNewVisitModal(true)}
+          className="rounded-xl shadow-sm px-5"
         >
-          تسجيل كشف جديد في الطابور
+          مريض جديد +
         </Button>
       </div>
 
-      {/* Live Counters Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 4 KPI Metrics matching design guide */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Total Today */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-500">إجمالي حالات اليوم</p>
-            <p className="text-2xl font-black text-clinic-navy mt-1 font-mono">
-              {counters.totalToday}
-            </p>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-slate-100 text-clinic-navy flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl">groups</span>
-          </div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col items-center justify-center text-center">
+          <span className="text-3xl font-black text-clinic-teal font-mono leading-none mb-1.5">
+            {counters.totalToday}
+          </span>
+          <span className="text-xs font-semibold text-slate-500">إجمالي الحالات</span>
         </div>
 
         {/* Waiting */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-amber-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-amber-800">قيد الانتظار بالعيادة</p>
-            <p className="text-2xl font-black text-amber-700 mt-1 font-mono">
-              {counters.waiting}
-            </p>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl">hourglass_top</span>
-          </div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col items-center justify-center text-center">
+          <span className="text-3xl font-black text-amber-600 font-mono leading-none mb-1.5">
+            {counters.waiting}
+          </span>
+          <span className="text-xs font-semibold text-slate-500">في الانتظار</span>
         </div>
 
         {/* In Consultation */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-teal-200 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-clinic-teal">داخل غرفة الكشف</p>
-            <p className="text-2xl font-black text-clinic-teal mt-1 font-mono">
-              {counters.inConsultation}
-            </p>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-teal-50 text-clinic-teal flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl animate-pulse">
-              stethoscope
-            </span>
-          </div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col items-center justify-center text-center">
+          <span className="text-3xl font-black text-clinic-navy font-mono leading-none mb-1.5">
+            {counters.inConsultation}
+          </span>
+          <span className="text-xs font-semibold text-slate-500">داخل الكشف</span>
         </div>
 
-        {/* Completed */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-emerald-200 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-emerald-800">تم الكشف اليوم</p>
-            <p className="text-2xl font-black text-emerald-700 mt-1 font-mono">
-              {counters.completed}
-            </p>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl">task_alt</span>
-          </div>
+        {/* Follow up / Completed */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col items-center justify-center text-center">
+          <span className="text-3xl font-black text-emerald-600 font-mono leading-none mb-1.5">
+            {counters.completed}
+          </span>
+          <span className="text-xs font-semibold text-slate-500">متابعة / مكتمل</span>
         </div>
       </div>
 
-      {/* Queue Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-clinic-teal text-xl">
-              format_list_numbered_rtl
-            </span>
-            <h3 className="text-base font-bold text-clinic-navy">طابور الانتظار الحالي</h3>
-          </div>
-          <span className="text-xs font-semibold text-slate-500">
-            يتم التحديث المباشر تلقائياً
+      {/* Search Bar */}
+      <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs flex items-center">
+        <div className="relative w-full flex items-center">
+          <span className="absolute start-3 material-symbols-outlined text-slate-400 text-lg pointer-events-none">
+            search
           </span>
+          <input
+            type="text"
+            placeholder="بحث باسم أو رقم مريض..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full ps-10 pe-4 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none"
+          />
         </div>
+      </div>
 
+      {/* Queue Table matching the table style in the guide */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
         {isLoading ? (
           <div className="p-6">
-            <LoadingSkeleton rows={4} height="h-14" />
+            <LoadingSkeleton rows={5} height="h-14" />
           </div>
-        ) : visits.length === 0 ? (
+        ) : filteredVisits.length === 0 ? (
           <div className="p-8">
             <EmptyState
-              icon="clinical_notes"
-              title="الطابور فارغ حالياً"
-              description="لم يتم تسجيل أي حالات كشف في طابور اليوم حتى الآن."
-              actionLabel="تسجيل أول مريض"
+              icon="search_off"
+              title="لا توجد أدوار مسجلة حالياً"
+              description="أضف مريضاً جديداً إلى الطابور بالضغط على زر مريض جديد أعلاه."
+              actionLabel="تسجيل مريض جديد"
               onAction={() => setShowNewVisitModal(true)}
             />
           </div>
@@ -140,55 +130,49 @@ export const ReceptionDashboard: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-right border-collapse">
               <thead>
-                <tr className="bg-slate-50 text-[11px] font-bold text-slate-500 border-b border-slate-200">
-                  <th className="p-3.5 pe-4">الدور</th>
-                  <th className="p-3.5">اسم المريض</th>
-                  <th className="p-3.5">وقت الحضور</th>
-                  <th className="p-3.5">نوع الكشف</th>
-                  <th className="p-3.5">الطبيب المعالج</th>
-                  <th className="p-3.5">حالة الدور</th>
-                  <th className="p-3.5 text-start ps-4">الإجراءات</th>
+                <tr className="bg-slate-50/80 text-[11px] font-bold text-slate-500 border-b border-slate-200">
+                  <th className="p-3.5 pe-4 text-center w-12">#</th>
+                  <th className="p-3.5 text-center">كود الدور</th>
+                  <th className="p-3.5">كود المريض</th>
+                  <th className="p-3.5">الاسم</th>
+                  <th className="p-3.5 text-center">نوع الزيارة</th>
+                  <th className="p-3.5 text-center">الحالة</th>
+                  <th className="p-3.5 text-center ps-4">إجراءات</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-                {visits.map((visit) => {
+                {filteredVisits.map((visit, index) => {
                   return (
                     <tr
                       key={visit.id}
-                      className={`hover:bg-slate-50/70 transition-colors ${
-                        visit.status === 'in_consultation'
-                          ? 'bg-teal-50/30'
-                          : visit.status === 'cancelled'
-                          ? 'opacity-60 bg-slate-50/50'
-                          : ''
-                      }`}
+                      className="hover:bg-slate-50/80 transition-colors h-14"
                     >
-                      {/* Queue Number */}
-                      <td className="p-3.5 pe-4">
-                        <span className="font-mono font-bold text-sm bg-slate-100 text-clinic-navy px-2.5 py-1 rounded-lg border border-slate-200">
+                      {/* Index */}
+                      <td className="p-3.5 pe-4 text-center font-mono text-slate-400 font-semibold">
+                        {index + 1}
+                      </td>
+
+                      {/* Queue Turn Code */}
+                      <td className="p-3.5 text-center">
+                        <span className="font-mono font-bold text-clinic-teal text-sm bg-teal-50 px-2.5 py-0.5 rounded-lg border border-teal-100">
                           {visit.queueNumber}
                         </span>
                       </td>
 
-                      {/* Patient Info */}
+                      {/* Patient Code */}
                       <td className="p-3.5">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-slate-900 text-sm">
-                            {visit.patientName}
-                          </span>
-                          <span className="font-mono text-[11px] text-slate-500 mt-0.5">
-                            {visit.patientCode} • {visit.patientPhone}
-                          </span>
-                        </div>
+                        <span className="font-mono font-bold text-clinic-navy bg-slate-100 px-2 py-0.5 rounded text-[11px] ltr-text">
+                          {visit.patientCode}
+                        </span>
                       </td>
 
-                      {/* Arrival Time */}
-                      <td className="p-3.5 font-mono text-slate-600">
-                        {visit.arrivalTime}
+                      {/* Patient Name */}
+                      <td className="p-3.5 font-bold text-slate-900 text-sm">
+                        {visit.patientName}
                       </td>
 
                       {/* Visit Type */}
-                      <td className="p-3.5">
+                      <td className="p-3.5 text-center">
                         <Badge variant={visit.visitType}>
                           {visit.visitType === 'new'
                             ? 'كشف جديد'
@@ -198,37 +182,32 @@ export const ReceptionDashboard: React.FC = () => {
                         </Badge>
                       </td>
 
-                      {/* Doctor */}
-                      <td className="p-3.5 font-semibold text-clinic-navy">
-                        {visit.doctorName}
-                      </td>
-
-                      {/* Status */}
-                      <td className="p-3.5">
+                      {/* Status Badge */}
+                      <td className="p-3.5 text-center">
                         <Badge variant={visit.status}>
                           {visit.status === 'waiting'
-                            ? 'قيد الانتظار'
+                            ? 'في الانتظار'
                             : visit.status === 'in_consultation'
-                            ? 'داخل غرفة الكشف'
+                            ? 'داخل الكشف'
                             : visit.status === 'completed'
-                            ? 'اكتمل الكشف'
-                            : 'ملغي'}
+                            ? 'مكتمل'
+                            : 'لم يحضر'}
                         </Badge>
                       </td>
 
-                      {/* Actions */}
-                      <td className="p-3.5 text-start ps-4">
-                        <div className="flex items-center gap-1.5">
+                      {/* Action buttons (إرسال / دخول) */}
+                      <td className="p-3.5 text-center ps-4">
+                        <div className="flex items-center justify-center gap-1.5">
                           {visit.status === 'waiting' && (
                             <button
                               type="button"
                               onClick={() => handleStatusChange(visit, 'in_consultation')}
-                              className="px-2.5 py-1 rounded-lg bg-clinic-teal text-white font-bold text-[11px] hover:bg-clinic-teal-light transition-colors flex items-center gap-1 cursor-pointer"
+                              className="px-4 py-1.5 rounded-lg bg-clinic-teal hover:bg-clinic-teal-light text-white font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
                             >
                               <span className="material-symbols-outlined text-sm">
-                                login
+                                send
                               </span>
-                              <span>إدخال للكشف</span>
+                              <span>إرسال</span>
                             </button>
                           )}
 
@@ -236,12 +215,12 @@ export const ReceptionDashboard: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleStatusChange(visit, 'completed')}
-                              className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700 transition-colors flex items-center gap-1 cursor-pointer"
+                              className="px-4 py-1.5 rounded-lg bg-clinic-navy hover:bg-clinic-navy-dark text-white font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
                             >
                               <span className="material-symbols-outlined text-sm">
                                 check
                               </span>
-                              <span>إنهاء الكشف</span>
+                              <span>دخول</span>
                             </button>
                           )}
 
@@ -249,7 +228,7 @@ export const ReceptionDashboard: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleStatusChange(visit, 'cancelled')}
-                              title="إلغاء الكشف"
+                              title="إلغاء / لم يحضر"
                               className="w-7 h-7 rounded-lg border border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 flex items-center justify-center transition-colors cursor-pointer"
                             >
                               <span className="material-symbols-outlined text-base">
@@ -282,7 +261,7 @@ export const ReceptionDashboard: React.FC = () => {
         isOpen={!!cancelVisit}
         onClose={() => setCancelVisit(null)}
         title="تأكيد إلغاء الكشف"
-        description="هل أنت متأكد من رغبتك في إلغاء دور هذا المريض؟"
+        description="هل أنت متأكد من تسجيل المريض كـ (لم يحضر)؟"
         maxWidth="sm"
         footer={
           <>
@@ -300,7 +279,7 @@ export const ReceptionDashboard: React.FC = () => {
               size="sm"
               onClick={confirmCancel}
             >
-              نعم، تأكيد الإلغاء
+              تأكيد الإلغاء
             </Button>
           </>
         }
@@ -310,10 +289,7 @@ export const ReceptionDashboard: React.FC = () => {
             المريض:{' '}
             <strong className="text-clinic-navy">{cancelVisit?.patientName}</strong>
           </p>
-          <p>الدور الحالي: {cancelVisit?.queueNumber}</p>
-          <p className="text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200 text-[11px]">
-            تنبيه: سيتم نقل الدور إلى قائمة الملغيات في سجل اليوم ولن يظهر في قائمة الانتظار الحالية.
-          </p>
+          <p>الدور: {cancelVisit?.queueNumber}</p>
         </div>
       </Modal>
     </div>
