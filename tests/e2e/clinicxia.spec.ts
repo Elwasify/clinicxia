@@ -45,6 +45,7 @@ test('welcome page routes all roles and every displayed navigation link opens a 
 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'إدارة أذكى.. رعاية طبية أفضل.' })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'طبيب داخل عيادة، صورة توضيحية' })).toBeVisible();
   await expectNoSidebar(page);
   await expect(page.getByText(demoSeed.clinicProfile.name, { exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'دخول الطبيب' }).click();
@@ -93,6 +94,43 @@ test('welcome page routes all roles and every displayed navigation link opens a 
   await expectNoSidebar(page);
 
   expect(consoleErrors).toEqual([]);
+});
+
+test('landing and authenticated navigation work at mobile widths', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto('/');
+  await expect(page.getByRole('img', { name: 'طبيب داخل عيادة، صورة توضيحية' })).toBeVisible();
+
+  const landingSections = [
+    { label: 'الرئيسية', target: '#top' },
+    { label: 'فريق العيادة', target: '#workspaces' },
+    { label: 'خدمات المنصة', target: '#services' },
+    { label: 'رحلة المريض', target: '#journey' },
+  ];
+  for (const { label, target } of landingSections) {
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.getByRole('button', { name: 'فتح قائمة الموقع' }).click();
+    const mobileNavigation = page.getByRole('navigation', { name: 'القائمة الرئيسية' });
+    await mobileNavigation.getByRole('link', { name: label, exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`${target.replace('#', '\\#')}$`));
+    await expect(page.locator(target)).toBeInViewport();
+  }
+
+  for (const width of [360, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  }
+
+  await page.locator('header').getByRole('link', { name: 'تسجيل الدخول' }).click();
+  await loginAs(page, 'DOCTOR');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.getByRole('button', { name: 'فتح قائمة التنقل' }).click();
+  const appNavigation = page.getByRole('navigation', { name: 'التنقل الرئيسي' });
+  await expect(appNavigation.getByRole('link', { name: 'غرفة الكشف' })).toBeVisible();
+  await appNavigation.getByRole('link', { name: 'غرفة الكشف' }).click();
+  await expect(page).toHaveURL(/\/examination$/);
+  await expect(page.getByRole('heading', { name: profiles.DOCTOR.heading })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
 test('route guards return 403 for every cross-role dashboard pair', async ({ page }) => {

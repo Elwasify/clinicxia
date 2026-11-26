@@ -1,8 +1,9 @@
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
-  Activity, ArrowDown, ArrowLeft, ArrowUpLeft, BadgeCheck, ClipboardCheck,
-  ClipboardPlus, FileHeart, HeartPulse, ShieldCheck, Stethoscope, UsersRound,
+  ArrowDown, ArrowLeft, ArrowUpLeft, ClipboardCheck, ClipboardPlus, FileHeart,
+  Menu, ShieldCheck, Stethoscope, UsersRound, X,
 } from 'lucide-react';
 import { dashboardApi } from '../api';
 import { ClinicIdentity } from '../components/ui/ClinicIdentity';
@@ -18,6 +19,13 @@ const workflow = [
   { title: 'استقبال منظّم', description: 'تسجيل الملف والزيارة في الطابور من قاعدة موحدة.', icon: UsersRound },
   { title: 'رعاية مترابطة', description: 'يرى الطبيب حالة المريض وتنبيهاته وتاريخه الطبي.', icon: FileHeart },
   { title: 'توثيق آمن', description: 'حفظ المسودة واعتماد الكشف وتحديث سجل الزيارة.', icon: ClipboardCheck },
+];
+
+const landingLinks = [
+  { href: '#top', label: 'الرئيسية' },
+  { href: '#workspaces', label: 'فريق العيادة' },
+  { href: '#services', label: 'خدمات المنصة' },
+  { href: '#journey', label: 'رحلة المريض' },
 ];
 
 function Count({ value, loading }: { value?: number; loading: boolean }) {
@@ -42,69 +50,40 @@ function LandingStats({ data, isLoading, isError, onRetry }: {
   </div>;
 }
 
-function ClinicPreview({ data, isLoading, isError }: {
-  data?: Awaited<ReturnType<typeof dashboardApi.getPublicSummary>>;
-  isLoading: boolean;
-  isError: boolean;
-}) {
-  return <div className="relative mx-auto w-full max-w-[570px] px-2 pb-8 pt-6 sm:px-8 sm:pb-12 sm:pt-10">
-    <div aria-hidden="true" className="absolute inset-x-10 bottom-9 top-12 rounded-[48%] bg-gradient-to-br from-cyan-100 via-sky-50 to-teal-100" />
-    <div aria-hidden="true" className="absolute end-7 top-8 h-20 w-20 rounded-full border border-cyan-200" />
-    <div aria-hidden="true" className="absolute bottom-12 start-4 h-12 w-12 rounded-full bg-teal-100/80" />
-
-    <div className="relative mx-auto max-w-[440px] rotate-[-1deg] rounded-[1.5rem] border-[7px] border-slate-800 bg-slate-800 p-1.5 shadow-[0_28px_60px_-20px_rgba(11,37,69,0.38)] sm:rounded-[1.8rem] sm:border-[9px] sm:p-2">
-      <div className="overflow-hidden rounded-xl bg-white">
-        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <ClinicIdentity variant="icon-only" size="sm" showClinicName={false} />
-            <div><p className="text-[10px] font-black text-clinic-navy">CLINICXIA</p><p className="text-[8px] text-slate-400">لوحة متابعة العيادة</p></div>
-          </div>
-          <span className="inline-flex items-center gap-1 rounded-full bg-cyan-50 px-2 py-1 text-[8px] font-bold text-cyan-800"><Activity size={10} />واجهة النظام</span>
-        </div>
-        <div className="p-3 sm:p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <div><p className="text-[9px] font-bold text-slate-400">مساحة العمل</p><h2 className="text-xs font-black text-clinic-navy sm:text-sm">ملخص العيادة اليوم</h2></div>
-            <span className="rounded-lg bg-cyan-50 p-2 text-clinic-teal"><Activity size={15} /></span>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: 'المرضى', value: data?.totalPatients },
-              { label: 'زيارات اليوم', value: data?.visitsToday },
-              { label: 'مكتمل', value: data?.completedExaminations },
-            ].map((item) => <div key={item.label} className="rounded-lg border border-slate-100 bg-slate-50/80 p-2">
-              <p className="font-mono text-sm font-black text-clinic-navy" dir="ltr">{isError ? '—' : isLoading ? '···' : (item.value ?? 0).toLocaleString('ar-EG')}</p>
-              <p className="mt-0.5 text-[8px] font-semibold text-slate-500">{item.label}</p>
-            </div>)}
-          </div>
-          <div className="mt-3 rounded-lg border border-slate-100 p-2.5">
-            <div className="mb-2 flex items-center gap-1.5 text-[9px] font-bold text-slate-600"><HeartPulse size={13} className="text-clinic-teal" /> رحلة رعاية مترابطة</div>
-            <div className="flex items-center gap-1.5" aria-hidden="true">
-              {Array.from({ length: 6 }, (_, index) => <span key={index} className="h-1.5 flex-1 rounded-full bg-cyan-100" />)}
-            </div>
-            <p className="mt-1.5 text-[8px] text-slate-400">من الاستقبال إلى حفظ التاريخ الطبي</p>
-          </div>
-        </div>
-      </div>
+function HeroImage() {
+  return <div className="relative mx-auto w-full max-w-[570px] px-1 py-4 sm:px-6 sm:py-8">
+    <div aria-hidden="true" className="absolute inset-x-8 bottom-6 top-8 rounded-[42%] bg-gradient-to-br from-cyan-100 via-sky-50 to-teal-100" />
+    <div className="relative overflow-hidden rounded-[1.75rem] border-[6px] border-white bg-white shadow-[0_28px_60px_-20px_rgba(11,37,69,0.38)] sm:rounded-[2rem] sm:border-[9px]">
+      <img
+        src="/doctor-hero.jpg"
+        alt="طبيب داخل عيادة، صورة توضيحية"
+        fetchPriority="high"
+        className="aspect-[4/3] w-full object-cover object-center"
+      />
     </div>
-    <div aria-hidden="true" className="relative mx-auto -mt-0.5 h-3 w-[88%] rounded-b-2xl bg-gradient-to-b from-slate-300 to-slate-100 shadow-md" />
-    <div className="absolute start-0 top-6 z-10 hidden max-w-48 -rotate-2 items-center gap-3 rounded-2xl border border-white/80 bg-white/95 p-3 shadow-xl backdrop-blur sm:flex">
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-clinic-teal"><Stethoscope size={20} /></span>
-      <div><p className="text-[10px] font-black text-clinic-navy">منصة واحدة</p><p className="mt-0.5 text-[9px] leading-4 text-slate-500">للطبيب والاستقبال والإدارة</p></div>
-    </div>
-    <div className="absolute bottom-5 end-0 z-10 hidden rotate-2 items-center gap-2.5 rounded-2xl border border-white/80 bg-white/95 p-3 shadow-xl backdrop-blur sm:flex">
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700"><BadgeCheck size={18} /></span>
-      <div><p className="text-[10px] font-black text-clinic-navy">بيانات مترابطة</p><p className="text-[9px] text-slate-500">تحديث مباشر عبر النظام</p></div>
+    <div className="absolute bottom-0 end-0 flex items-center gap-2.5 rounded-2xl border border-white/80 bg-white/95 px-3 py-2.5 shadow-xl backdrop-blur sm:bottom-1 sm:end-1 sm:px-4 sm:py-3">
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-50 text-clinic-teal"><Stethoscope size={18} aria-hidden="true" /></span>
+      <div><p className="text-[10px] font-black text-clinic-navy sm:text-xs">منظومة واحدة</p><p className="text-[9px] text-slate-500 sm:text-[10px]">لفريق الرعاية بالكامل</p></div>
     </div>
   </div>;
 }
 
 export function WelcomePage() {
   const { profile } = useClinic();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['public-clinic-summary'],
     queryFn: dashboardApi.getPublicSummary,
     retry: 0,
   });
+
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileMenuOpen(false);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, []);
 
   return <main id="top" dir="rtl" className="min-h-screen overflow-hidden bg-white text-right text-slate-800">
     <header className="sticky top-0 z-30 border-b border-slate-100 bg-white/95 backdrop-blur-xl">
@@ -113,15 +92,27 @@ export function WelcomePage() {
           <ClinicIdentity size="md" showSubtitle={false} clinicNameClassName="hidden sm:inline" />
         </a>
         <nav aria-label="القائمة الرئيسية" className="hidden items-center gap-7 lg:flex">
-          <a href="#top" aria-current="page" className="border-b-2 border-clinic-teal py-2 text-sm font-bold text-clinic-navy">الرئيسية</a>
-          <a href="#workspaces" className="py-2 text-sm font-semibold text-slate-500 transition hover:text-clinic-teal">فريق العيادة</a>
-          <a href="#services" className="py-2 text-sm font-semibold text-slate-500 transition hover:text-clinic-teal">خدمات المنصة</a>
-          <a href="#journey" className="py-2 text-sm font-semibold text-slate-500 transition hover:text-clinic-teal">رحلة المريض</a>
+          {landingLinks.map(({ href, label }, index) => <a key={href} href={href} aria-current={index === 0 ? 'page' : undefined} className={`py-2 text-sm font-semibold transition hover:text-clinic-teal ${index === 0 ? 'border-b-2 border-clinic-teal font-bold text-clinic-navy' : 'text-slate-500'}`}>{label}</a>)}
         </nav>
-        <Link to="/login" className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-clinic-navy px-4 py-2.5 text-xs font-black text-clinic-navy transition hover:bg-clinic-navy hover:text-white sm:px-5 sm:text-sm">
-          تسجيل الدخول <ArrowLeft size={15} aria-hidden="true" />
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            aria-label={mobileMenuOpen ? 'إغلاق قائمة الموقع' : 'فتح قائمة الموقع'}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-site-navigation"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-clinic-navy transition hover:border-clinic-teal lg:hidden"
+          >
+            {mobileMenuOpen ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
+          </button>
+          <Link to="/login" className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-clinic-navy px-3 py-2.5 text-xs font-black text-clinic-navy transition hover:bg-clinic-navy hover:text-white sm:px-5 sm:text-sm">
+            تسجيل الدخول <ArrowLeft size={15} aria-hidden="true" />
+          </Link>
+        </div>
       </div>
+      {mobileMenuOpen && <nav id="mobile-site-navigation" aria-label="القائمة الرئيسية" className="absolute inset-x-0 top-full border-t border-slate-100 bg-white p-3 shadow-lg lg:hidden">
+        {landingLinks.map(({ href, label }, index) => <a key={href} href={href} aria-current={index === 0 ? 'page' : undefined} onClick={() => setMobileMenuOpen(false)} className={`block rounded-xl px-4 py-3 text-sm transition ${index === 0 ? 'font-black text-clinic-navy' : 'font-semibold text-slate-600 hover:bg-slate-50 hover:text-clinic-teal'}`}>{label}</a>)}
+      </nav>}
     </header>
 
     <section aria-labelledby="welcome-title" className="relative mx-auto grid max-w-7xl items-center gap-2 px-4 pb-9 pt-5 sm:px-8 sm:pb-14 sm:pt-10 lg:min-h-[600px] lg:grid-cols-[1.05fr_.95fr] lg:gap-0 lg:pb-14 lg:pt-8">
@@ -150,7 +141,7 @@ export function WelcomePage() {
         </div>
       </div>
       <div className="relative order-2 lg:order-1">
-        <ClinicPreview data={data} isLoading={isLoading} isError={isError} />
+        <HeroImage />
       </div>
     </section>
 
