@@ -7,9 +7,11 @@ import { Modal } from '../../components/ui/Modal';
 import { LoadingSkeleton } from '../../components/ui/LoadingSkeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { QueueStatus, Visit } from '../../types';
+import { DashboardOverview } from '../dashboard/DashboardOverview';
+import { VisitJourney } from '../visits/VisitJourney';
 
 export const ReceptionDashboard: React.FC = () => {
-  const { visits, counters, isLoading, updateStatus, createVisit } = useLiveQueue();
+  const { visits, counters, isLoading, isError, refetch, updateStatus, createVisit } = useLiveQueue();
   const [showNewVisitModal, setShowNewVisitModal] = useState(false);
   const [cancelVisit, setCancelVisit] = useState<Visit | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -96,6 +98,10 @@ export const ReceptionDashboard: React.FC = () => {
         </Button>
       </div>
 
+      <DashboardOverview />
+
+      {isError && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">تعذر تحميل الطابور من الخادم. <button type="button" onClick={() => void refetch()} className="font-bold underline">إعادة المحاولة</button></div>}
+
         {/* KPI cards */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
           {kpiCards.map((card) => (
@@ -159,6 +165,7 @@ export const ReceptionDashboard: React.FC = () => {
                             <div>
                               <p className="text-sm font-black text-slate-900">{visit.patientName}</p>
                               <p className="mt-0.5 text-[11px] text-slate-500">ترتيب اليوم #{index + 1}</p>
+                              <div className="mt-3"><VisitJourney visit={visit} /></div>
                             </div>
                             <span className="rounded-xl border border-teal-100 bg-teal-50 px-3 py-1 font-mono text-sm font-black text-clinic-teal">
                               {visit.queueNumber}
@@ -255,7 +262,10 @@ export const ReceptionDashboard: React.FC = () => {
                                                   </span>
                                                 </td>
 
-                                                <td className="p-4 font-bold text-sm text-slate-900">{visit.patientName}</td>
+                                                <td className="p-4">
+                                                  <p className="font-bold text-sm text-slate-900">{visit.patientName}</p>
+                                                  <div className="mt-2 max-w-sm"><VisitJourney visit={visit} compact /></div>
+                                                </td>
 
                                                 <td className="p-4 text-center">
                                                   <Badge variant={visit.visitType}>

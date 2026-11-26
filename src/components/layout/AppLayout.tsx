@@ -1,16 +1,26 @@
-import React from 'react';
+import { ReactNode, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Header } from './Header';
+import { DemoTour } from './DemoTour';
+import { LayoutContext } from './LayoutContext';
 import { ToastContainer } from '../ui/Toast';
 
-export const AppLayout: React.FC = () => {
+interface AppLayoutProps {
+  children?: ReactNode;
+}
+
+export function AppLayout({ children }: AppLayoutProps) {
+  const [focusMode, setFocusMode] = useState(false);
   return (
-      <div className="min-h-screen bg-clinic-bg text-right">
-        <Header />
-        <main className="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-          <Outlet />
+    <LayoutContext.Provider value={{ focusMode, setFocusMode }}>
+      <div dir="rtl" className="min-h-screen bg-clinic-bg text-right text-slate-800">
+        <Header focusMode={focusMode} />
+        {!focusMode && <DemoTour />}
+        <main className={`mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8 ${focusMode ? 'py-4 sm:py-5' : 'py-6 sm:py-8 lg:py-10'}`}>
+          {children || <Outlet />}
         </main>
         <ToastContainer />
       </div>
-      );
-};
+    </LayoutContext.Provider>
+  );
+}

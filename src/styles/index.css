@@ -16,8 +16,8 @@
   --color-clinic-waiting: #d97706;
   --color-clinic-completed: #16a34a;
 
-  --font-cairo: "Cairo", system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-cairo: "Cairo Variable", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
 }
 
 @layer base {
@@ -41,7 +41,7 @@
     min-height: 100vh;
     background-color: var(--clinic-bg);
     color: var(--clinic-text);
-    font-family: "Cairo", system-ui, sans-serif;
+    font-family: "Cairo Variable", system-ui, -apple-system, sans-serif;
     direction: rtl;
     text-align: right;
     margin: 0;
@@ -61,7 +61,7 @@
 }
 
 .material-symbols-outlined {
-  font-family: 'Material Symbols Outlined';
+  font-family: 'Material Symbols Outlined Variable';
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
@@ -162,5 +162,16 @@ table {
     padding: 0 !important;
     border: none !important;
     box-shadow: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }

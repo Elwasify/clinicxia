@@ -1,5 +1,5 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../features/auth/useAuthStore';
 
 interface NavigationProps {
@@ -7,98 +7,79 @@ interface NavigationProps {
   onNavigate?: () => void;
 }
 
-export const Navigation: React.FC<NavigationProps> = ({
-  mode = 'desktop',
-  onNavigate,
-}) => {
-  const { user } = useAuthStore();
-  const isDoctor = user?.role === 'DOCTOR';
+const linksByRole = {
+  DOCTOR: [
+    { to: '/', label: 'الرئيسية', icon: 'space_dashboard', end: true },
+    { to: '/examination', label: 'غرفة الكشف', icon: 'stethoscope' },
+    { to: '/patients', label: 'المرضى', icon: 'group' },
+    { to: '/daily-record', label: 'سجل اليوم', icon: 'event_note' },
+  ],
+  RECEPTIONIST: [
+    { to: '/', label: 'الرئيسية', icon: 'space_dashboard', end: true },
+    { to: '/daily-record', label: 'طابور اليوم', icon: 'format_list_numbered_rtl' },
+    { to: '/patients/new', label: 'تسجيل مريض', icon: 'person_add' },
+    { to: '/patients', label: 'قاعدة المرضى', icon: 'group' },
+  ],
+  ADMIN: [
+    { to: '/', label: 'الرئيسية', icon: 'space_dashboard', end: true },
+    { to: '/admin/doctors', label: 'الأطباء', icon: 'medical_services' },
+    { to: '/admin/staff', label: 'الموظفون', icon: 'badge' },
+    { to: '/patients', label: 'المرضى', icon: 'group' },
+    { to: '/daily-record', label: 'سجل اليوم', icon: 'event_note' },
+  ],
+} as const;
 
-  const navItems = [
-    {
-      to: '/',
-      label: isDoctor ? 'غرفة الكشف' : 'لوحة الاستقبال',
-      icon: isDoctor ? 'stethoscope' : 'space_dashboard',
-      description: isDoctor
-        ? 'متابعة قائمة الانتظار والحالة الحالية'
-        : 'إدارة الطابور الحي وحركة المرضى',
-    },
-    {
-      to: '/daily-record',
-      label: 'سجل اليوم',
-      icon: 'event_note',
-      description: 'مراجعة تسلسل اليوم والحالات المسجلة',
-    },
-    {
-      to: '/patients',
-      label: 'قاعدة المرضى',
-      icon: 'group',
-      description: 'الوصول السريع لملفات المرضى وتحديث البيانات',
-    },
-  ];
+export function Navigation({ mode = 'desktop', onNavigate }: NavigationProps) {
+  const user = useAuthStore((state) => state.user);
+  const location = useLocation();
+  const [open, setOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
+  const role = user?.role || 'DOCTOR';
+  const items = linksByRole[role];
+  const desktopItems = items.slice(0, 3);
+  const moreItems = items.slice(3);
+  const moreIsActive = moreItems.some((item) => location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(`${item.to}/`)));
 
-  if (mode === 'desktop') {
-    return (
-      <nav className="flex items-center gap-1" aria-label="التنقل الرئيسي">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/'}
-            onClick={onNavigate}
-            className={({ isActive }) =>
-              `inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-all duration-200 select-none ${
-                isActive
-                  ? 'bg-clinic-navy text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-clinic-navy'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <span className={`material-symbols-outlined text-[18px] ${isActive ? 'text-white' : 'text-clinic-teal'}`}>
-                  {item.icon}
-                </span>
-                <span>{item.label}</span>
-              </>
-            )}
-          </NavLink>
-        ))}
-      </nav>
-    );
-  }
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+        moreButtonRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [open]);
 
-  return (
-    <nav className="flex flex-col gap-2" aria-label="التنقل الرئيسي">
-      {navItems.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.to === '/'}
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            `flex items-center gap-3 rounded-2xl border px-4 py-3.5 transition-all duration-200 ${
-              isActive
-                ? 'border-clinic-navy bg-clinic-navy text-white shadow-sm'
-                : 'border-slate-200 bg-white text-slate-700 hover:border-clinic-teal/40 hover:bg-teal-50/40'
-            }`
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <span className={`material-symbols-outlined text-xl shrink-0 ${isActive ? 'text-white' : 'text-clinic-teal'}`}>
-                {item.icon}
-              </span>
-              <div className="flex flex-col text-right min-w-0">
-                <span className="text-sm font-bold leading-tight">{item.label}</span>
-                <span className={`text-[11px] leading-5 ${isActive ? 'text-white/75' : 'text-slate-500'}`}>
-                  {item.description}
-                </span>
-              </div>
-            </>
-          )}
-        </NavLink>
-      ))}
+  const linkClass = (active: boolean, mobile: boolean) => mobile
+    ? `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${active ? 'bg-clinic-navy text-white' : 'text-slate-700 hover:bg-slate-100'}`
+    : `inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-xs font-bold transition ${active ? 'bg-clinic-navy text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-clinic-navy'}`;
+
+  if (mode === 'mobile') return (
+    <nav aria-label="التنقل الرئيسي" className="flex flex-col gap-1.5">
+      {items.map((item) => <NavLink key={item.to} to={item.to} end={'end' in item && item.end} onClick={onNavigate} className={({ isActive }) => linkClass(isActive, true)}>
+        <span className="material-symbols-outlined text-lg" aria-hidden="true">{item.icon}</span><span>{item.label}</span>
+      </NavLink>)}
     </nav>
   );
-};
+
+  return (
+    <nav aria-label="التنقل الرئيسي" className="flex items-center gap-1.5">
+      {desktopItems.map((item) => <NavLink key={item.to} to={item.to} end={'end' in item && item.end} aria-current={location.pathname === item.to ? 'page' : undefined} className={({ isActive }) => linkClass(isActive, false)}>
+        <span className="material-symbols-outlined text-base" aria-hidden="true">{item.icon}</span><span>{item.label}</span>
+      </NavLink>)}
+      {moreItems.length > 0 && <div ref={moreRef} className="relative">
+        <button ref={moreButtonRef} type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((value) => !value)} className={linkClass(moreIsActive, false)}>
+          <span>المزيد</span><span className="material-symbols-outlined text-base" aria-hidden="true">expand_more</span>
+        </button>
+        {open && <div role="menu" className="absolute end-0 top-full z-50 mt-2 min-w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+          {moreItems.map((item) => <NavLink key={item.to} role="menuitem" to={item.to} onClick={() => { setOpen(false); onNavigate?.(); }} className={({ isActive }) => `${linkClass(isActive, true)} text-xs`}>
+            <span className="material-symbols-outlined text-base" aria-hidden="true">{item.icon}</span><span>{item.label}</span>
+          </NavLink>)}
+        </div>}
+      </div>}
+    </nav>
+  );
+}

@@ -12,6 +12,7 @@ interface ToastStore {
   toasts: ToastMessage[];
   addToast: (toast: Omit<ToastMessage, 'id'>) => void;
   removeToast: (id: string) => void;
+  clear: () => void;
 }
 
 export const useToastStore = create<ToastStore>((set) => ({
@@ -35,6 +36,7 @@ export const useToastStore = create<ToastStore>((set) => ({
     set((state) => ({
       toasts: state.toasts.filter((t) => t.id !== id),
     })),
+  clear: () => set({ toasts: [] }),
 }));
 
 export const ToastContainer = () => {

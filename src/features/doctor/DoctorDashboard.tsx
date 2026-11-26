@@ -1,26 +1,26 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../auth/useAuthStore';
-import { visitsApi } from '../../api';
 import { Visit } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { LoadingSkeleton } from '../../components/ui/LoadingSkeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ExaminationForm } from '../visits/ExaminationForm';
+import { DashboardOverview } from '../dashboard/DashboardOverview';
+import { VisitJourney } from '../visits/VisitJourney';
+import { useLayoutContext } from '../../components/layout/LayoutContext';
+import { useLiveQueue } from '../reception/useLiveQueue';
 
 export const DoctorDashboard: React.FC = () => {
   const { user } = useAuthStore();
   const [activeVisit, setActiveVisit] = useState<Visit | null>(null);
+  const { setFocusMode } = useLayoutContext();
 
-  const {
-    data: visits = [],
-    isLoading,
-    refetch,
-  } = useQuery({
-    queryKey: ['visits', user?.doctorId],
-    queryFn: () => visitsApi.getQueue(user?.doctorId),
-    refetchInterval: 4000,
-  });
+  useEffect(() => {
+    setFocusMode(Boolean(activeVisit));
+    return () => setFocusMode(false);
+  }, [activeVisit, setFocusMode]);
+
+  const { visits, isLoading, isError, refetch, updateStatus } = useLiveQueue(user?.doctorId);
 
   const currentConsultation = visits.find((v) => v.status === 'in_consultation');
   const waitingVisits = visits.filter((v) => v.status === 'waiting');
@@ -28,8 +28,10 @@ export const DoctorDashboard: React.FC = () => {
 
   const handleStartExam = async (visit: Visit) => {
     if (visit.status !== 'in_consultation') {
-      await visitsApi.updateStatus(visit.id, 'in_consultation');
-      refetch();
+      const updatedVisit = await updateStatus({ id: visit.id, status: 'in_consultation' });
+      setActiveVisit(updatedVisit);
+      await refetch();
+      return;
     }
     setActiveVisit(visit);
   };
@@ -75,6 +77,10 @@ export const DoctorDashboard: React.FC = () => {
             </div>
           </div>
 
+          <DashboardOverview />
+
+          {isError && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">تعذر تحميل طابور الطبيب. <button type="button" onClick={() => void refetch()} className="font-bold underline">إعادة المحاولة</button></div>}
+
           {isLoading ? (
             <LoadingSkeleton rows={4} height="h-20" />
           ) : (
@@ -103,6 +109,7 @@ export const DoctorDashboard: React.FC = () => {
                                         <p className="mt-2 text-xs font-mono text-white/70">
                                           كود: {currentConsultation.patientCode} &nbsp;•&nbsp; السن: {currentConsultation.patientAge || '—'} سنة
                                         </p>
+                                        <div className="mt-5 rounded-xl bg-white/10 p-3"><VisitJourney visit={currentConsultation} compact /></div>
 
                                         {currentConsultation.drugAllergies.length > 0 && (
                                             <div className="mt-4 flex items-center gap-2 rounded-xl bg-red-500/90 p-3 text-xs font-bold shadow-sm">
@@ -190,6 +197,7 @@ export const DoctorDashboard: React.FC = () => {
                           <p className="mt-0.5 text-[11px] text-slate-500 font-mono">
                             {v.patientCode} &nbsp;•&nbsp; الحضور: {v.arrivalTime}
                           </p>
+                          <div className="mt-2 max-w-sm"><VisitJourney visit={v} /></div>
                         </div>
                       </div>
 
@@ -240,6 +248,7 @@ export const DoctorDashboard: React.FC = () => {
                                                           <p className="mt-0.5 text-slate-500">
                                                             التشخيص: {v.examination?.diagnosis || <span className="text-slate-300">—</span>}
                                                           </p>
+                                                          <div className="mt-2 max-w-sm"><VisitJourney visit={v} compact /></div>
                                                         </div>
                                                       </div>
                                                       <Button

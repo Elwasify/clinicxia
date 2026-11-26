@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { patientsApi } from '../api';
 import { Patient, CreatePatientInput } from '../types';
@@ -9,17 +10,23 @@ import { Input } from '../components/ui/Input';
 import { LoadingSkeleton } from '../components/ui/LoadingSkeleton';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useToastStore } from '../components/ui/Toast';
+import { useAuthStore } from '../features/auth/useAuthStore';
 
-export const PatientsDatabasePage: React.FC = () => {
+interface PatientsDatabasePageProps { initialCreate?: boolean }
+
+export const PatientsDatabasePage: React.FC<PatientsDatabasePageProps> = ({ initialCreate = false }) => {
+  const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const readOnly = user?.role === 'DOCTOR';
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(initialCreate);
 
   const addToast = useToastStore((s) => s.addToast);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['patients', search],
     queryFn: () => patientsApi.list(search),
   });
@@ -60,10 +67,10 @@ export const PatientsDatabasePage: React.FC = () => {
           <div>
               <h1 className="text-2xl font-black text-clinic-navy sm:text-3xl">قاعدة بيانات المرضى</h1>
               <p className="mt-1 text-sm text-slate-500">
-                البحث في السجلات الطبية وتعديل البيانات وتسجيل مرضى جدد
+                {readOnly ? 'البحث في السجلات الطبية وعرض ملفات المرضى.' : 'البحث في السجلات الطبية وتعديل البيانات وتسجيل مرضى جدد.'}
               </p>
           </div>
-          <Button
+          {!readOnly && <Button
             variant="teal"
             size="md"
             leftIcon={<span className="material-symbols-outlined text-lg">person_add</span>}
@@ -71,7 +78,7 @@ export const PatientsDatabasePage: React.FC = () => {
             className="w-full sm:w-auto"
           >
             تسجيل مريض جديد
-          </Button>
+          </Button>}
         </div>
 
             {/* Search bar */}
@@ -99,14 +106,16 @@ export const PatientsDatabasePage: React.FC = () => {
                     <div className="p-6">
                       <LoadingSkeleton rows={5} height="h-14" />
                     </div>
+                  ) : isError ? (
+                    <div role="alert" className="p-8 text-center text-sm text-red-700">تعذر تحميل قاعدة المرضى. <button type="button" onClick={() => void refetch()} className="font-bold underline">إعادة المحاولة</button></div>
                   ) : patients.length === 0 ? (
                       <div className="p-10">
                         <EmptyState
                           icon="search_off"
                           title="لم يتم العثور على أي مرضى"
                           description="تأكد من كتابة الاسم أو رقم الهاتف بشكل صحيح، أو أضف مريضاً جديداً."
-                          actionLabel="تسجيل مريض جديد"
-                          onAction={() => setShowCreateModal(true)}
+                          actionLabel={readOnly ? undefined : 'تسجيل مريض جديد'}
+                          onAction={readOnly ? undefined : () => setShowCreateModal(true)}
                         />
                       </div>
                       ) : (
@@ -227,14 +236,14 @@ export const PatientsDatabasePage: React.FC = () => {
                                                                           >
                                                                             عرض الملف
                                                                           </button>
-                                                                          <button
+                                                                          {!readOnly && <button
                                                                             type="button"
                                                                             onClick={() => { setEditingPatient(p); setShowCreateModal(true); }}
                                                                             className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:border-slate-400 hover:text-clinic-navy transition-colors"
                                                                             title="تعديل"
                                                                           >
                                                                             <span className="material-symbols-outlined text-sm">edit</span>
-                                                                          </button>
+                                                                          </button>}
                                                                         </div>
                                                                       </td>
                                                                     </tr>
@@ -249,7 +258,7 @@ export const PatientsDatabasePage: React.FC = () => {
 
                                                         <PatientFormModal
                                                           isOpen={showCreateModal}
-                                                          onClose={() => { setShowCreateModal(false); setEditingPatient(null); }}
+                                                          onClose={() => { setShowCreateModal(false); setEditingPatient(null); if (initialCreate) navigate('/patients', { replace: true }); }}
                                                           patient={editingPatient}
                                                           onSubmit={handleFormSubmit}
                                                           existingPatients={patients}
@@ -258,7 +267,7 @@ export const PatientsDatabasePage: React.FC = () => {
                                                         <PatientDetailsModal
                                                           patientId={selectedPatientId}
                                                           onClose={() => setSelectedPatientId(null)}
-                                                          onEdit={() => {
+                                                          onEdit={readOnly ? undefined : () => {
                                                             const target = patients.find((p) => p.id === selectedPatientId);
                                                             if (target) {
                                                               setSelectedPatientId(null);

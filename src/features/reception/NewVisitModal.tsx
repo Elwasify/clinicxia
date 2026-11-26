@@ -147,7 +147,7 @@ export const NewVisitModal: React.FC<NewVisitModalProps> = ({
           {/* Patient Selection & Search */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-700">
+              <label htmlFor="patient-search" className="text-xs font-bold text-slate-700">
                 اختيار المريض <span className="text-red-500">*</span>
               </label>
               <button
@@ -161,6 +161,7 @@ export const NewVisitModal: React.FC<NewVisitModalProps> = ({
             </div>
 
             <Input
+              id="patient-search"
               placeholder="ابحث بالاسم أو رقم الهاتف أو كود المريض..."
               value={patientSearch}
               onChange={(e) => setPatientSearch(e.target.value)}
@@ -176,10 +177,12 @@ export const NewVisitModal: React.FC<NewVisitModalProps> = ({
                 patients.map((p) => {
                   const isSelected = selectedPatientId === p.id;
                   return (
-                    <div
+                    <button
+                      type="button"
+                      aria-pressed={isSelected}
                       key={p.id}
                       onClick={() => setSelectedPatientId(p.id)}
-                      className={`p-3 flex items-center justify-between cursor-pointer transition-colors ${
+                      className={`w-full text-right p-3 flex items-center justify-between cursor-pointer transition-colors ${
                         isSelected
                           ? 'bg-teal-50 border-s-4 border-clinic-teal text-clinic-navy'
                           : 'hover:bg-slate-100/80 text-slate-700'
@@ -196,7 +199,7 @@ export const NewVisitModal: React.FC<NewVisitModalProps> = ({
                           حساسية دواء!
                         </span>
                       )}
-                    </div>
+                    </button>
                   );
                 })
               )}

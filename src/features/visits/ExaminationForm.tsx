@@ -1,13 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Visit, ExaminationData, PrescriptionItem } from '../../types';
 import { visitsApi } from '../../api';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { PrescriptionPrintView } from '../prescriptions/PrescriptionPrintView';
+import { PrescriptionEditor } from '../prescriptions/PrescriptionEditor';
 import { AddendumModal } from './AddendumModal';
 import { VisitHistoryTimeline } from './VisitHistoryTimeline';
 import { useVoiceDictation } from '../voice/useVoiceDictation';
 import { useToastStore } from '../../components/ui/Toast';
+import { PatientAlertsBanner } from '../patients/PatientAlertsBanner';
+import { VisitJourney } from './VisitJourney';
 
 export interface ExaminationFormProps {
   visit: Visit;
@@ -25,11 +28,9 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
   const isApproved = visit.examinationStatus === 'approved';
   const addToast = useToastStore((s) => s.addToast);
 
-  // Active Tab: الكشف الحالي | التاريخ الطبي | الأدوية السابقة | التحاليل والأشعة
-  const [activeTab, setActiveTab] = useState<'current' | 'history' | 'meds' | 'labs'>('current');
-
   // Form Fields
   const [chiefComplaint, setChiefComplaint] = useState(visit.examination?.chiefComplaint || '');
+  const [clinicalExamination, setClinicalExamination] = useState(visit.examination?.clinicalExamination || '');
   const [diagnosis, setDiagnosis] = useState(visit.examination?.diagnosis || '');
   const [treatmentPlan, setTreatmentPlan] = useState(visit.examination?.treatmentPlan || '');
   const [followUpOption, setFollowUpOption] = useState<'finished' | 'needs_tests' | 'needs_revisit'>('needs_revisit');
@@ -42,12 +43,27 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showAddendumModal, setShowAddendumModal] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [draftSaveFailed, setDraftSaveFailed] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const editRevision = useRef(0);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draftRequest = useRef<Promise<Visit> | null>(null);
+  const onVisitUpdatedRef = useRef(onVisitUpdated);
+
+  useEffect(() => { onVisitUpdatedRef.current = onVisitUpdated; }, [onVisitUpdated]);
+
+  const markDirty = () => {
+    editRevision.current += 1;
+    setHasUnsavedChanges(true);
+    setDraftSaveFailed(false);
+  };
 
   // Voice text insertion handler
   const handleVoiceInsert = (text: string) => {
     if (isApproved) return;
-    setHasUnsavedChanges(true);
+    markDirty();
     setDiagnosis((prev) => (prev ? `${prev} ${text}` : text));
   };
 
@@ -81,7 +97,7 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
 
   const getFormData = (): ExaminationData => ({
     chiefComplaint,
-    clinicalExamination: diagnosis,
+    clinicalExamination,
     diagnosis,
     treatmentPlan,
     followUpDate: followUpOption === 'needs_revisit' ? revisitPeriod : undefined,
@@ -89,10 +105,68 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
     prescription,
   });
 
+  const saveDraftNow = useCallback(async (): Promise<boolean> => {
+    await draftRequest.current?.catch(() => undefined);
+    const revision = editRevision.current;
+    setIsSavingDraft(true);
+    setDraftSaveFailed(false);
+    const request = visitsApi.saveDraft(visit.id, getFormData());
+    draftRequest.current = request;
+    try {
+      await request;
+      if (revision === editRevision.current) setHasUnsavedChanges(false);
+      onVisitUpdatedRef.current();
+      return revision === editRevision.current;
+    } catch {
+      setDraftSaveFailed(true);
+      return false;
+    } finally {
+      if (draftRequest.current === request) draftRequest.current = null;
+      setIsSavingDraft(false);
+    }
+  }, [visit.id, chiefComplaint, clinicalExamination, diagnosis, treatmentPlan, followUpOption, revisitPeriod, prescription]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges || isApproved) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => { void saveDraftNow(); }, 800);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [hasUnsavedChanges, isApproved, saveDraftNow]);
+
+  useEffect(() => {
+    const protectUnsaved = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', protectUnsaved);
+    return () => window.removeEventListener('beforeunload', protectUnsaved);
+  }, [hasUnsavedChanges]);
+
+  const requestBack = () => {
+    if (hasUnsavedChanges) setShowLeaveConfirm(true);
+    else onBack();
+  };
+
+  const handleSaveDraft = async () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    return saveDraftNow();
+  };
+
+  const saveAndLeave = async () => {
+    const saved = await handleSaveDraft();
+    if (saved) {
+      setShowLeaveConfirm(false);
+      onBack();
+    }
+  };
+
   // Approve & Lock
   const handleApprove = async () => {
     setIsApproving(true);
     try {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      await draftRequest.current?.catch(() => undefined);
       await visitsApi.approve(visit.id, getFormData());
       setHasUnsavedChanges(false);
       setShowApproveConfirm(false);
@@ -131,7 +205,7 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
             <div className="flex items-center gap-3 text-xs text-slate-500 mt-1 font-medium">
               <span>{visit.patientGender === 'female' ? 'أنثى' : 'ذكر'}</span>
               <span>•</span>
-              <span>{visit.patientAge || '32'} سنة</span>
+              <span>{visit.patientAge ?? '—'} سنة</span>
               <span>•</span>
               <span className="font-mono text-slate-600">{visit.patientPhone}</span>
             </div>
@@ -151,45 +225,27 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
             </span>
           )}
 
-          <Button variant="outline" size="sm" onClick={onBack}>
+          <Button variant="outline" size="sm" onClick={requestBack}>
             الرجوع للقائمة
           </Button>
         </div>
       </div>
 
-      {/* 2. Top Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-5 rounded-2xl shadow-xs">
-        {[
-          { id: 'current', label: 'الكشف الحالي' },
-          { id: 'history', label: 'التاريخ الطبي' },
-          { id: 'meds', label: 'الأدوية السابقة' },
-          { id: 'labs', label: 'التحاليل والأشعة' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`py-3.5 px-4 font-bold text-xs border-b-2 transition-all cursor-pointer ${
-              activeTab === tab.id
-                ? 'border-clinic-teal text-clinic-teal'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <VisitJourney visit={visit} />
+      <PatientAlertsBanner allergies={visit.drugAllergies} chronicDiseases={visit.chronicDiseases} />
 
-      {/* Tab: History / Meds / Labs View */}
-      {activeTab !== 'current' && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+      <details className="rounded-2xl border border-slate-200 bg-white shadow-xs">
+        <summary className="cursor-pointer list-none px-5 py-4 text-sm font-bold text-clinic-navy marker:content-none focus-visible:outline-3 focus-visible:outline-clinic-teal">
+          التاريخ المرضي السابق ({patientHistory.length} زيارة مسجلة)
+          <span className="float-left material-symbols-outlined text-clinic-teal" aria-hidden="true">expand_more</span>
+        </summary>
+        <div className="border-t border-slate-100 p-5">
           <VisitHistoryTimeline visits={patientHistory} currentVisitId={visit.id} />
         </div>
-      )}
+      </details>
 
-      {/* 3. Main Split 2-Column Layout matching Doctor Dashboard in Design Board */}
-      {activeTab === 'current' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      {/* Examination and treatment workspace */}
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
           {/* Left Column: التشخيص والملاحظات مع التسجيل الصوتي */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col gap-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -225,7 +281,12 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
               </div>
             </div>
 
-            {/* Circular Voice Dictation Area matching design board */}
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="chief-complaint" className="text-xs font-bold text-slate-700">الشكوى الرئيسية</label>
+        <textarea id="chief-complaint" rows={2} disabled={isApproved} value={chiefComplaint} onChange={(event) => { setChiefComplaint(event.target.value); markDirty(); }} placeholder="اكتب سبب الزيارة كما يصفه المريض..." className="w-full rounded-xl border border-slate-300 p-3 text-xs leading-relaxed focus-visible:outline-3 focus-visible:outline-clinic-teal disabled:bg-slate-50" />
+      </div>
+
+      {/* Circular Voice Dictation Area matching design board */}
             {!isApproved && (
               <div className="flex flex-col items-center justify-center p-6 bg-slate-50/70 rounded-2xl border border-slate-200/80 gap-3 text-center">
                 <button
@@ -279,18 +340,24 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
               </div>
             )}
 
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="clinical-examination" className="text-xs font-bold text-slate-700">الفحص السريري</label>
+              <textarea id="clinical-examination" rows={3} disabled={isApproved} value={clinicalExamination} onChange={(event) => { setClinicalExamination(event.target.value); markDirty(); }} placeholder="سجل نتائج الفحص السريري والعلامات الحيوية..." className="w-full rounded-xl border border-slate-300 p-3 text-xs leading-relaxed focus-visible:outline-3 focus-visible:outline-clinic-teal disabled:bg-slate-50" />
+            </div>
+
             {/* Diagnosis Input */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-700">
+              <label htmlFor="diagnosis" className="text-xs font-bold text-slate-700">
                 التشخيص الطبي السريري
               </label>
               <textarea
+                id="diagnosis"
                 rows={4}
                 disabled={isApproved}
                 value={diagnosis}
                 onChange={(e) => {
                   setDiagnosis(e.target.value);
-                  setHasUnsavedChanges(true);
+                  markDirty();
                 }}
                 placeholder="أدخل التشخيص الطبي أو تحدث عبر الميكروفون أعلاه..."
                 className="w-full rounded-xl border border-slate-300 p-3 text-xs leading-relaxed focus-visible:outline-3 focus-visible:outline-clinic-teal disabled:bg-slate-50"
@@ -320,40 +387,24 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
               )}
             </div>
 
-            {/* Rich text / prescription toolbar icons */}
-            <div className="flex items-center gap-1 p-1.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-600 text-xs">
-              <button type="button" className="p-1 hover:bg-slate-200 rounded" title="عريض">
-                <span className="material-symbols-outlined text-base">format_bold</span>
-              </button>
-              <button type="button" className="p-1 hover:bg-slate-200 rounded" title="مائل">
-                <span className="material-symbols-outlined text-base">format_italic</span>
-              </button>
-              <button type="button" className="p-1 hover:bg-slate-200 rounded" title="قائمة">
-                <span className="material-symbols-outlined text-base">format_list_bulleted</span>
-              </button>
-              <div className="h-4 w-px bg-slate-300 mx-1" />
-              <button type="button" className="p-1 hover:bg-slate-200 rounded" title="إدراج جدول">
-                <span className="material-symbols-outlined text-base">table_chart</span>
-              </button>
-              <button type="button" className="p-1 hover:bg-slate-200 rounded" title="أدوية جاهزة">
-                <span className="material-symbols-outlined text-base">medication</span>
-              </button>
-            </div>
-
             {/* Treatment plan text area */}
             <div className="flex flex-col gap-1.5">
+              <label htmlFor="treatment-plan" className="text-xs font-bold text-slate-700">خطة العلاج والملاحظات</label>
               <textarea
+                id="treatment-plan"
                 rows={5}
                 disabled={isApproved}
                 value={treatmentPlan}
                 onChange={(e) => {
                   setTreatmentPlan(e.target.value);
-                  setHasUnsavedChanges(true);
+                  markDirty();
                 }}
                 placeholder="اكتب الأدوية الموصوفة، الجرعات، والتعليمات الطبية هنا..."
                 className="w-full rounded-xl border border-slate-300 p-3 text-xs leading-relaxed focus-visible:outline-3 focus-visible:outline-clinic-teal disabled:bg-slate-50"
               />
             </div>
+
+            <PrescriptionEditor items={prescription} onChange={(items) => { setPrescription(items); markDirty(); }} isReadOnly={isApproved} />
 
             {/* Options at bottom matching the design board */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
@@ -363,7 +414,7 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
                     type="radio"
                     name="followUpOption"
                     checked={followUpOption === 'finished'}
-                    onChange={() => setFollowUpOption('finished')}
+                    onChange={() => { setFollowUpOption('finished'); markDirty(); }}
                     className="accent-clinic-teal"
                   />
                   <span>كشف منتهي</span>
@@ -374,7 +425,7 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
                     type="radio"
                     name="followUpOption"
                     checked={followUpOption === 'needs_tests'}
-                    onChange={() => setFollowUpOption('needs_tests')}
+                    onChange={() => { setFollowUpOption('needs_tests'); markDirty(); }}
                     className="accent-clinic-teal"
                   />
                   <span>يحتاج فحص</span>
@@ -385,7 +436,7 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
                     type="radio"
                     name="followUpOption"
                     checked={followUpOption === 'needs_revisit'}
-                    onChange={() => setFollowUpOption('needs_revisit')}
+                    onChange={() => { setFollowUpOption('needs_revisit'); markDirty(); }}
                     className="accent-clinic-teal"
                   />
                   <span>يحتاج إعادة زيارة</span>
@@ -397,7 +448,7 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
                   <span className="text-[11px] text-slate-500">مهلة الإعادة:</span>
                   <select
                     value={revisitPeriod}
-                    onChange={(e) => setRevisitPeriod(e.target.value)}
+                    onChange={(e) => { setRevisitPeriod(e.target.value); markDirty(); }}
                     className="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800"
                   >
                     <option value="أسبوع">أسبوع</option>
@@ -410,43 +461,40 @@ export const ExaminationForm: React.FC<ExaminationFormProps> = ({
             </div>
 
             {/* Final CTA button matching design board: إنهاء الكشف وحفظ الملاحظات ← */}
-            {!isApproved ? (
-              <button
-                type="button"
-                onClick={() => setShowApproveConfirm(true)}
-                className="w-full mt-3 py-3 px-6 rounded-xl bg-clinic-teal hover:bg-clinic-teal-light active:bg-teal-800 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-              >
-                <span>إنهاء الكشف وحفظ الملاحظات</span>
-                <span className="material-symbols-outlined text-lg rtl:rotate-180">
-                  arrow_forward
-                </span>
-              </button>
-            ) : (
-              <div className="flex items-center gap-2 mt-3">
-                <Button
-                  variant="teal"
-                  size="md"
-                  onClick={() => setShowPrintModal(true)}
-                  className="flex-1"
-                  leftIcon={<span className="material-symbols-outlined text-base">print</span>}
-                >
-                  طباعة الروشتة الرسمية
-                </Button>
-                <Button
-                  variant="outline"
-                  size="md"
-                  onClick={() => setShowAddendumModal(true)}
-                  leftIcon={<span className="material-symbols-outlined text-base">post_add</span>}
-                >
-                  استدراك طبي
-                </Button>
-              </div>
-            )}
+            <div className="sticky bottom-0 z-20 -mx-3 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
+              {!isApproved ? <>
+                <div aria-live="polite" className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                  <span className={draftSaveFailed ? 'font-bold text-red-700' : 'text-slate-500'}>{draftSaveFailed ? 'تعذر حفظ المسودة. تحقق من الاتصال ثم أعد المحاولة.' : isSavingDraft ? 'جارٍ حفظ المسودة…' : hasUnsavedChanges ? 'تغييرات غير محفوظة' : visit.examinationStatus === 'draft' ? 'المسودة محفوظة' : 'لا توجد تغييرات غير محفوظة'}</span>
+                  {(hasUnsavedChanges || draftSaveFailed) && <button type="button" onClick={() => void handleSaveDraft()} className="font-bold text-clinic-teal underline">حفظ المسودة الآن</button>}
+                </div>
+                <button type="button" onClick={() => setShowApproveConfirm(true)} className="flex w-full items-center justify-center gap-2 rounded-xl bg-clinic-teal px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-clinic-teal-light active:bg-teal-800">
+                  <span>اعتماد الكشف وإنهاؤه</span><span className="material-symbols-outlined text-lg rtl:rotate-180">arrow_forward</span>
+                </button>
+              </> : <div className="flex flex-wrap items-center gap-2">
+                <Button variant="teal" size="md" onClick={() => setShowPrintModal(true)} className="flex-1" leftIcon={<span className="material-symbols-outlined text-base">print</span>}>طباعة الروشتة الرسمية</Button>
+                <Button variant="outline" size="md" onClick={() => setShowAddendumModal(true)} leftIcon={<span className="material-symbols-outlined text-base">post_add</span>}>استدراك طبي</Button>
+              </div>}
+            </div>
           </div>
         </div>
-      )}
 
       {/* Confirmation Modal */}
+      <Modal
+        isOpen={showLeaveConfirm}
+        onClose={() => setShowLeaveConfirm(false)}
+        title="لديك تغييرات غير محفوظة"
+        description="احفظ المسودة قبل الرجوع إلى قائمة المرضى."
+        maxWidth="sm"
+        footer={
+          <>
+            <Button variant="outline" size="sm" onClick={() => setShowLeaveConfirm(false)}>مواصلة الكشف</Button>
+            <Button variant="teal" size="sm" isLoading={isSavingDraft} onClick={() => void saveAndLeave()}>حفظ المسودة والعودة</Button>
+          </>
+        }
+      >
+        {draftSaveFailed && <p role="alert" className="text-xs font-bold text-red-700">تعذر الحفظ. تحقق من الاتصال ثم حاول مرة أخرى.</p>}
+      </Modal>
+
       <Modal
         isOpen={showApproveConfirm}
         onClose={() => setShowApproveConfirm(false)}
